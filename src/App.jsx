@@ -21,10 +21,10 @@ const INTERVIEW_QUESTIONS = [
 ]
 
 const VERDICT_CONFIG = {
-  GO:    { label: "GO",    icon: "🟢", title: "접수 완료!",       desc: "잘 정의된 과제입니다. 담당자에게 전달되었어요.",             bg: "#F0FDF4", border: "#34D399", text: "#065F46", badge: "#D1FAE5|#065F46" },
-  MAYBE: { label: "MAYBE", icon: "🟡", title: "보완이 필요해요",  desc: "조금 더 구체화하면 좋겠어요. 아래 항목을 보완해주세요.",   bg: "#FFFBEB", border: "#FBBF24", text: "#92400E", badge: "#FEF3C7|#92400E" },
-  NO:    { label: "NO",    icon: "🔴", title: "AX 영역 밖이에요", desc: "현재 AX스쿼드 지원 범위에 맞지 않아요.",                   bg: "#FFF1F2", border: "#FB7185", text: "#9F1239", badge: "#FFE4E6|#9F1239" },
-  HOLD:  { label: "HOLD",  icon: "⏸️", title: "보류",            desc: "현재 시점에서는 보류합니다. 재접수 시점을 안내해드릴게요.", bg: "#F8FAFC", border: "#94A3B8", text: "#475569", badge: "#F1F5F9|#475569" },
+  GO:    { label: "GO",    icon: "🟢", title: "접수 완료!",       desc: "잘 정의된 과제입니다. 현재 3-5월 스프린트 과제가 확정되어 있어, 내부 논의 후 담당자가 연락드릴 예정이에요.",             bg: "#F0FDF4", border: "#34D399", text: "#065F46", badge: "#D1FAE5|#065F46" },
+  MAYBE: { label: "MAYBE", icon: "🟡", title: "보완이 필요해요",  desc: "현재 3-5월 과제가 확정되어 리소스가 부족한 상황이에요. 내용을 조금 더 구체화해주시면 다음 기간에 진행 가능한지 검토해드릴게요.",   bg: "#FFFBEB", border: "#FBBF24", text: "#92400E", badge: "#FEF3C7|#92400E" },
+  NO:    { label: "NO",    icon: "🔴", title: "AX 영역 밖이에요", desc: "현재 3-5월 과제가 확정되어 리소스가 부족한 상황이에요. AX 지원 범위와 맞지 않지만, 다음 기간 재접수 시 재검토해드릴게요.",                   bg: "#FFF1F2", border: "#FB7185", text: "#9F1239", badge: "#FFE4E6|#9F1239" },
+  HOLD:  { label: "HOLD",  icon: "⏸️", title: "보류",            desc: "현재 3-5월 과제가 확정되어 리소스가 부족한 상황이에요. 다음 기간에 진행 가능한지 내부 검토 후 안내드릴게요.", bg: "#F8FAFC", border: "#94A3B8", text: "#475569", badge: "#F1F5F9|#475569" },
 }
 
 const SPRINTS = [
