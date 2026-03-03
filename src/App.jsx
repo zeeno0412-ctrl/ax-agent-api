@@ -33,6 +33,13 @@ const SPRINTS = [
   { label: "AX) AX PM 역량강화",          date: "2026.03", color: "#60A5FA" },
   { label: "전사) SLT 임원대상 교육",     date: "2026.04", color: "#CBD5E1" },
   { label: "PBU) 물류재고&MD",            date: "2026.04", color: "#CBD5E1" },
+  { label: "AX) 샌드박스 구축",                        date: "2026.02", color: "#34D399" },
+  { label: "HBU) 건강기능식품 속성 추출 및 심의봇 연동", date: "2026.02", color: "#34D399" },
+  { label: "AX) GCP 데이터 이관",                      date: "2026.02", color: "#34D399" },
+  { label: "PBU) 고객의 소리 해피콜 신분류 체계 검증",  date: "2026.03", color: "#60A5FA" },
+  { label: "PBU) 트렌즈 기술 지원",                    date: "2026.03", color: "#60A5FA" },
+  { label: "PBU) 고객의 소리 기반 통합 시스템",         date: "2026.04", color: "#CBD5E1" },
+  { label: "AX) FDE 역량강화",                         date: "2026.07", color: "#CBD5E1" },
 ]
 
 // ── utils ────────────────────────────────────────────────
