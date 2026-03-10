@@ -2,19 +2,15 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*")
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
   res.setHeader("Access-Control-Allow-Headers", "*")
-  if (req.method === "OPTIONS") {
-    return res.status(204).end()
-  }
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" })
-  }
+  if (req.method === "OPTIONS") return res.status(204).end()
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" })
+
   try {
-    const { receiptId, answers, verdict, firstMsg } = req.body
+    const { receiptId, answers, verdict, firstMsg, pov } = req.body
     const NOTION_TOKEN = process.env.NOTION_TOKEN
     const NOTION_DB_ID = process.env.NOTION_DB_ID
-    if (!NOTION_TOKEN || !NOTION_DB_ID) {
-      return res.status(200).json({ ok: false, error: "환경변수 없음" })
-    }
+    if (!NOTION_TOKEN || !NOTION_DB_ID) return res.status(200).json({ ok: false, error: "환경변수 없음" })
+
     const notionRes = await fetch("https://api.notion.com/v1/pages", {
       method: "POST",
       headers: {
@@ -36,14 +32,14 @@ export default async function handler(req, res) {
           "현재상황":     { rich_text: [{ text: { content: answers?.current || "-" } }] },
           "기대효과":     { rich_text: [{ text: { content: answers?.effect  || "-" } }] },
           "데이터산출물": { rich_text: [{ text: { content: answers?.data    || "-" } }] },
+          "PoV":          { rich_text: [{ text: { content: pov || "-" } }] },
           "접수일시":     { date:      { start: new Date().toISOString() } },
         }
       })
     })
+
     const data = await notionRes.json()
-    if (!notionRes.ok) {
-      return res.status(200).json({ ok: false, error: data.message })
-    }
+    if (!notionRes.ok) return res.status(200).json({ ok: false, error: data.message })
     return res.status(200).json({ ok: true })
   } catch (e) {
     return res.status(200).json({ ok: false, error: e.message })

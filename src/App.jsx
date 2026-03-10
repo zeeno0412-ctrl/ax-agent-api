@@ -75,10 +75,10 @@ async function evaluatePOVWithAI(answers) {
     })
     const data = await res.json()
     const member = SQUAD_MEMBERS.find(m => m.name === data.member) || SQUAD_MEMBERS[2]
-    return { verdict: data.verdict || "MAYBE", member, reason: data.reason || "" }
+    return { verdict: data.verdict || "MAYBE", member, reason: data.reason || "", pov: data.pov || "" }
   } catch {
     const filled = Object.values(answers).filter(v => v?.trim().length > 1).length
-    return { verdict: filled >= 6 ? "GO" : filled >= 4 ? "MAYBE" : "NO", member: SQUAD_MEMBERS[2], reason: "" }
+    return { verdict: filled >= 6 ? "GO" : filled >= 4 ? "MAYBE" : "NO", member: SQUAD_MEMBERS[2], reason: "", pov: "" }
   }
 }
 
@@ -159,7 +159,7 @@ function POVCard({ answers }) {
   )
 }
 
-function VerdictCard({ verdict, member, receiptId, reason, notionSaved }) {
+function VerdictCard({ verdict, member, receiptId, reason, pov, notionSaved }) {
   const cfg = VERDICT_CONFIG[verdict]
   if (!cfg) return null
   const [badgeBg, badgeText] = cfg.badge.split("|")
@@ -172,7 +172,8 @@ function VerdictCard({ verdict, member, receiptId, reason, notionSaved }) {
         <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, background: badgeBg, color: badgeText }}>{cfg.label}</span>
       </div>
       <p style={{ fontSize: 13, color: cfg.text, marginBottom: 4 }}>{cfg.desc}</p>
-      {reason && <p style={{ fontSize: 11, color: "#64748B", fontStyle: "italic", marginBottom: 12, background: "rgba(255,255,255,0.7)", borderRadius: 8, padding: "6px 12px" }}>💬 {reason}</p>}
+      {reason && <p style={{ fontSize: 11, color: "#64748B", fontStyle: "italic", marginBottom: 8, background: "rgba(255,255,255,0.7)", borderRadius: 8, padding: "6px 12px" }}>💬 {reason}</p>}
+      {pov && <p style={{ fontSize: 12, color: "#1D4ED8", marginBottom: 12, background: "#EFF6FF", borderRadius: 8, padding: "8px 12px", lineHeight: 1.6 }}>📌 <strong>PoV</strong><br/>{pov}</p>}
       {receiptId && <p style={{ fontSize: 11, color: "#94A3B8", marginBottom: 12 }}>접수번호: <strong style={{ color: "#475569" }}>{receiptId}</strong></p>}
       {verdict === "GO" && member && (
         <div style={{ background: "white", borderRadius: 12, padding: 12, display: "flex", alignItems: "center", gap: 12, border: "1px solid #F1F5F9", marginBottom: 8 }}>
@@ -288,6 +289,7 @@ export default function AXAgentChat() {
   const memberRef    = useRef(null)
   const receiptIdRef = useRef(null)
   const reasonRef    = useRef("")
+  const povRef       = useRef("")
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, isTyping, stage])
 
@@ -298,7 +300,7 @@ export default function AXAgentChat() {
       const copy = [...prev]
       for (let i = copy.length - 1; i >= 0; i--) {
         if (copy[i].isVerdict) {
-          copy[i] = { ...copy[i], content: <VerdictCard verdict={verdictRef.current} member={memberRef.current} receiptId={receiptIdRef.current} reason={reasonRef.current} notionSaved={notionSaved} /> }
+          copy[i] = { ...copy[i], content: <VerdictCard verdict={verdictRef.current} member={memberRef.current} receiptId={receiptIdRef.current} reason={reasonRef.current} pov={povRef.current} notionSaved={notionSaved} /> }
           break
         }
       }
@@ -366,15 +368,15 @@ export default function AXAgentChat() {
     receiptIdRef.current = rId
     agentSay(<span>AI로 과제를 평가하고 있어요... ✨</span>)
 
-    const { verdict: v, member, reason } = await evaluatePOVWithAI(answers)
-    verdictRef.current = v; memberRef.current = member; reasonRef.current = reason
+    const { verdict: v, member, reason, pov } = await evaluatePOVWithAI(answers)
+    verdictRef.current = v; memberRef.current = member; reasonRef.current = reason; povRef.current = pov
     setNotionSaved(null)
 
     setTimeout(() => {
       setStage("verdict")
-      addMsg("agent", <VerdictCard verdict={v} member={member} receiptId={rId} reason={reason} notionSaved={null} />, { isVerdict: true })
+      addMsg("agent", <VerdictCard verdict={v} member={member} receiptId={rId} reason={reason} pov={pov} notionSaved={null} />, { isVerdict: true })
       // Notion 저장 (기존 notion.js 엔드포인트)
-      saveToNotion({ receiptId: rId, answers, verdict: v, firstMsg }).then(result => setNotionSaved(result))
+      saveToNotion({ receiptId: rId, answers, verdict: v, firstMsg, pov }).then(result => setNotionSaved(result))
       const receipt = { id: rId, title, verdict: v, answers, firstMsg, reason, createdAt: new Date().toISOString(), member }
       setReceipts(persistReceipt(receipt))
 

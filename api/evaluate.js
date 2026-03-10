@@ -7,7 +7,7 @@ export default async function handler(req, res) {
 
   const { summary } = req.body
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
-  if (!ANTHROPIC_API_KEY) return res.status(200).json({ verdict: "MAYBE", member: "서은영", reason: "API key 없음" })
+  if (!ANTHROPIC_API_KEY) return res.status(200).json({ verdict: "MAYBE", member: "서은영", reason: "API key 없음", pov: "" })
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -19,19 +19,44 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 500,
-        messages: [{ role: "user", content: `당신은 AX스쿼드 과제 접수 심사자입니다. JSON만 응답하세요.\n\n[접수내용]\n${summary}\n\n[지원영역]\n- 생성형 AI → 강민수\n- 업무 자동화 → 이유미\n- AX 역량 강화 → 서은영\n\n[판정기준]\n- GO: 문제명확, 지원가능, 효과구체적\n- MAYBE: 정보부족\n- NO: 지원범위밖\n- HOLD: 시기상조\n\n반드시 아래 JSON만 응답:\n{"verdict":"GO","member":"강민수","reason":"이유"}`}]
+        max_tokens: 800,
+        messages: [{
+          role: "user",
+          content: `당신은 AX스쿼드(AI/DX 과제 담당팀)의 과제 접수 심사자입니다.
+아래 접수 내용을 보고 판정, 담당자, PoV를 JSON으로만 응답하세요.
+
+[접수 내용]
+${summary}
+
+[지원 영역]
+- 생성형 AI 도입 (챗봇, 문서 자동화, RAG 등) → 강민수
+- 업무 자동화 (RPA, 데이터 파이프라인, 리포트 자동화 등) → 이유미
+- AX 역량 강화 (AI 교육, 내재화, 문화 확산 등) → 서은영
+
+[판정 기준]
+- GO: 문제 명확, AX 지원 가능, 기대효과 구체적
+- MAYBE: 방향은 맞으나 정보 부족하거나 범위 불명확
+- NO: AX 지원 범위 밖이거나 기술적 구현 불가
+- HOLD: 시기상조이거나 현재 우선순위 낮음
+
+[PoV 작성 규칙]
+PoV는 아래 형식으로 한 문장으로 작성:
+"[대상]는 [현재상황]에 [니즈/어려움]이 있다. 왜냐하면 [인사이트]하기 때문이다."
+
+반드시 아래 JSON만 응답 (다른 텍스트 없이):
+{"verdict":"GO","member":"강민수","reason":"판정 이유 한 문장","pov":"[대상]는 [현재상황]에 [니즈] 있다. 왜냐하면 [인사이트]하기 때문이다."}`
+        }]
       })
     })
 
     const raw = await response.text()
-    if (!response.ok) return res.status(200).json({ verdict: "MAYBE", member: "서은영", reason: `API 오류: ${raw}` })
+    if (!response.ok) return res.status(200).json({ verdict: "MAYBE", member: "서은영", reason: `API 오류: ${raw}`, pov: "" })
 
     const data = JSON.parse(raw)
     const text = data.content?.[0]?.text || ""
     const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
     return res.status(200).json(parsed)
   } catch (e) {
-    return res.status(200).json({ verdict: "MAYBE", member: "서은영", reason: e.message })
+    return res.status(200).json({ verdict: "MAYBE", member: "서은영", reason: e.message, pov: "" })
   }
 }
