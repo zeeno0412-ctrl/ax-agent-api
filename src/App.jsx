@@ -159,6 +159,127 @@ function POVCard({ answers }) {
   )
 }
 
+
+const STEP_LABELS = ["분석", "프로토타이핑 전략", "그로스 전략", "이터레이션 설계", "PRD 설계"]
+
+function renderMarkdown(text) {
+  const lines = text.split("\n")
+  return lines.map((line, i) => {
+    if (line.startsWith("## ")) return <h3 key={i} style={{ fontSize: 14, fontWeight: 700, color: "#1E293B", margin: "16px 0 6px" }}>{line.replace("## ", "")}</h3>
+    if (line.startsWith("### ")) return <h4 key={i} style={{ fontSize: 13, fontWeight: 600, color: "#334155", margin: "12px 0 4px" }}>{line.replace("### ", "")}</h4>
+    if (line.startsWith("- **")) return <p key={i} style={{ fontSize: 13, color: "#475569", margin: "3px 0", paddingLeft: 12 }} dangerouslySetInnerHTML={{__html: "• " + line.slice(2).replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")}} />
+    if (line.startsWith("- ")) return <p key={i} style={{ fontSize: 13, color: "#475569", margin: "3px 0", paddingLeft: 12 }}>• {line.slice(2)}</p>
+    if (line.startsWith("**") && line.endsWith("**")) return <p key={i} style={{ fontSize: 13, fontWeight: 600, color: "#334155", margin: "4px 0" }}>{line.replace(/\*\*/g, "")}</p>
+    if (line.trim() === "") return <div key={i} style={{ height: 4 }} />
+    return <p key={i} style={{ fontSize: 13, color: "#475569", margin: "3px 0", lineHeight: 1.6 }} dangerouslySetInnerHTML={{__html: line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")}} />
+  })
+}
+
+function DeepenModal({ answers, pov, onClose }) {
+  const [step, setStep] = React.useState(1)
+  const [results, setResults] = React.useState({})
+  const [loading, setLoading] = React.useState(false)
+
+  React.useEffect(() => {
+    loadStep(1)
+  }, [])
+
+  async function loadStep(s) {
+    if (results[s]) { setStep(s); return }
+    setLoading(true)
+    try {
+      const res = await fetch("/api/deepen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ step: s, answers, pov })
+      })
+      const data = await res.json()
+      setResults(prev => ({ ...prev, [s]: data.result || "분석 실패" }))
+      setStep(s)
+    } catch (e) {
+      setResults(prev => ({ ...prev, [s]: "오류: " + e.message }))
+      setStep(s)
+    }
+    setLoading(false)
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }} />
+      <div className="animate-fade-in" style={{ position: "relative", background: "white", borderRadius: 20, boxShadow: "0 25px 50px rgba(0,0,0,0.25)", width: "100%", maxWidth: 640, maxHeight: "88vh", display: "flex", flexDirection: "column" }}
+        onClick={e => e.stopPropagation()}>
+        
+        {/* 헤더 */}
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #F1F5F9", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+          <div>
+            <p style={{ fontSize: 15, fontWeight: 700, color: "#1E293B", margin: 0 }}>💡 아이디어 심화 분석</p>
+            <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>5단계로 과제를 깊게 파고들어요</p>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8", fontSize: 20 }}>✕</button>
+        </div>
+
+        {/* 스텝 탭 */}
+        <div style={{ display: "flex", padding: "8px 20px", gap: 6, borderBottom: "1px solid #F1F5F9", flexShrink: 0, overflowX: "auto" }}>
+          {STEP_LABELS.map((label, i) => {
+            const s = i + 1
+            const isDone = !!results[s]
+            const isCurrent = step === s
+            return (
+              <button key={s} onClick={() => loadStep(s)}
+                style={{ padding: "5px 12px", borderRadius: 99, fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+                  background: isCurrent ? "linear-gradient(135deg,#1E3A8A,#3B82F6)" : isDone ? "#F0FDF4" : "#F8FAFC",
+                  color: isCurrent ? "white" : isDone ? "#065F46" : "#94A3B8" }}>
+                {isDone && !isCurrent ? "✓ " : ""}{s}. {label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* 콘텐츠 */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
+          {loading ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 200, gap: 12 }}>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[0, 0.2, 0.4].map((d, i) => (
+                  <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#3B82F6", animation: `bounce-dot 1s infinite ${d}s` }} />
+                ))}
+              </div>
+              <p style={{ fontSize: 13, color: "#94A3B8" }}>{step}단계 분석 중...</p>
+            </div>
+          ) : results[step] ? (
+            <div>{renderMarkdown(results[step])}</div>
+          ) : null}
+        </div>
+
+        {/* 푸터 */}
+        <div style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+          <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>{step} / 5 단계</p>
+          <div style={{ display: "flex", gap: 8 }}>
+            {step > 1 && (
+              <button onClick={() => loadStep(step - 1)}
+                style={{ padding: "8px 16px", borderRadius: 12, background: "#F1F5F9", color: "#475569", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
+                ← 이전
+              </button>
+            )}
+            {step < 5 && (
+              <button onClick={() => loadStep(step + 1)} disabled={loading}
+                style={{ padding: "8px 20px", borderRadius: 12, background: loading ? "#E2E8F0" : "linear-gradient(135deg,#1E3A8A,#3B82F6)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: loading ? "not-allowed" : "pointer" }}>
+                다음 →
+              </button>
+            )}
+            {step === 5 && (
+              <button onClick={onClose}
+                style={{ padding: "8px 20px", borderRadius: 12, background: "linear-gradient(135deg,#0CA678,#34D399)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
+                완료 ✓
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function VerdictCard({ verdict, member, receiptId, reason, pov, notionSaved }) {
   const cfg = VERDICT_CONFIG[verdict]
   if (!cfg) return null
@@ -283,6 +404,8 @@ export default function AXAgentChat() {
   const [selectedReceipt, setSelectedReceipt] = useState(null)
   const [sidebarTab, setSidebarTab]           = useState("history")
   const [notionSaved, setNotionSaved]         = useState(undefined)
+  const [showDeepen, setShowDeepen]           = useState(false)
+  const [deepenData, setDeepenData]           = useState(null)
   const bottomRef    = useRef(null)
   const isSubmit     = useRef(false)
   const verdictRef   = useRef(null)
@@ -377,6 +500,7 @@ export default function AXAgentChat() {
       addMsg("agent", <VerdictCard verdict={v} member={member} receiptId={rId} reason={reason} pov={pov} notionSaved={null} />, { isVerdict: true })
       // Notion 저장 (기존 notion.js 엔드포인트)
       saveToNotion({ receiptId: rId, answers, verdict: v, firstMsg, pov }).then(result => setNotionSaved(result))
+      setDeepenData({ answers, pov })
       const receipt = { id: rId, title, verdict: v, answers, firstMsg, reason, createdAt: new Date().toISOString(), member }
       setReceipts(persistReceipt(receipt))
 
@@ -559,9 +683,16 @@ export default function AXAgentChat() {
 
           {stage === "done" && !isTyping && (
             <div style={{ paddingLeft: 52 }}>
-              <button onClick={reset} style={{ padding: "8px 16px", borderRadius: 12, background: "#F1F5F9", color: "#475569", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
-                새 과제 접수하기
-              </button>
+              <div style={{ display: "flex", gap: 8 }}>
+                {deepenData && (
+                  <button onClick={() => setShowDeepen(true)} style={{ padding: "8px 16px", borderRadius: 12, background: "linear-gradient(135deg,#7C3AED,#A78BFA)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
+                    💡 아이디어 심화하기
+                  </button>
+                )}
+                <button onClick={reset} style={{ padding: "8px 16px", borderRadius: 12, background: "#F1F5F9", color: "#475569", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
+                  새 과제 접수하기
+                </button>
+              </div>
             </div>
           )}
 
@@ -588,6 +719,7 @@ export default function AXAgentChat() {
       </div>
 
       {selectedReceipt && <ReceiptModal receipt={selectedReceipt} onClose={() => setSelectedReceipt(null)} />}
+      {showDeepen && deepenData && <DeepenModal answers={deepenData.answers} pov={deepenData.pov} onClose={() => setShowDeepen(false)} />}
     </div>
   )
 }
