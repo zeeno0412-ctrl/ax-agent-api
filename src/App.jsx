@@ -344,6 +344,8 @@ function HistoryItem({ r, onClick }) {
 }
 
 function ReceiptModal({ receipt, onClose }) {
+  const [showDeepen, setShowDeepen] = useState(false)
+
   const cfg = VERDICT_CONFIG[receipt.verdict]
   const [badgeBg, badgeText] = cfg.badge.split("|")
   return (
@@ -501,7 +503,7 @@ export default function AXAgentChat() {
       // Notion 저장 (기존 notion.js 엔드포인트)
       saveToNotion({ receiptId: rId, answers, verdict: v, firstMsg, pov }).then(result => setNotionSaved(result))
       setDeepenData({ answers, pov })
-      const receipt = { id: rId, title, verdict: v, answers, firstMsg, reason, createdAt: new Date().toISOString(), member }
+      const receipt = { id: rId, title, verdict: v, answers, firstMsg, reason, pov, createdAt: new Date().toISOString(), member }
       setReceipts(persistReceipt(receipt))
 
       if (v === "GO") {
