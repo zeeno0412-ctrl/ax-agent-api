@@ -176,11 +176,11 @@ function renderMarkdown(text) {
 }
 
 function DeepenModal({ answers, pov, onClose }) {
-  const [step, setStep] = React.useState(1)
-  const [results, setResults] = React.useState({})
-  const [loading, setLoading] = React.useState(false)
+  const [step, setStep] = useState(1)
+  const [results, setResults] = useState({})
+  const [loading, setLoading] = useState(false)
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadStep(1)
   }, [])
 
