@@ -387,6 +387,11 @@ function ReceiptModal({ receipt, onClose }) {
               </div>
             ))}
           </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button onClick={() => setShowDeepen(true)} style={{ flex: 1, padding: "10px", borderRadius: 12, background: "linear-gradient(135deg,#7C3AED,#A78BFA)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>💡 아이디어 심화하기</button>
+            <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 12, background: "#F1F5F9", color: "#475569", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>닫기</button>
+          </div>
+          {showDeepen && <DeepenModal answers={receipt.answers} pov={receipt.pov || ""} onClose={() => setShowDeepen(false)} />}
         </div>
       </div>
     </div>
