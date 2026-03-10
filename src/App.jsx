@@ -87,7 +87,7 @@ async function saveToNotion({ receiptId, answers, verdict, firstMsg, pov }) {
     const res = await fetch("/api/notion", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ receiptId, answers, verdict, firstMsg })
+      body: JSON.stringify({ receiptId, answers, verdict, firstMsg, pov })
     })
     return await res.json()
   } catch (e) {
