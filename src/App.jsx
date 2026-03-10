@@ -82,7 +82,7 @@ async function evaluatePOVWithAI(answers) {
   }
 }
 
-async function saveToNotion({ receiptId, answers, verdict, firstMsg }) {
+async function saveToNotion({ receiptId, answers, verdict, firstMsg, pov }) {
   try {
     const res = await fetch("/api/notion", {
       method: "POST",
