@@ -175,7 +175,7 @@ function renderMarkdown(text) {
   })
 }
 
-function DeepenModal({ answers, pov, onClose }) {
+function DeepenModal({ answers, pov, receiptId, onClose }) {
   const [step, setStep] = useState(1)
   const [results, setResults] = useState({})
   const [loading, setLoading] = useState(false)
@@ -186,6 +186,12 @@ function DeepenModal({ answers, pov, onClose }) {
 
   async function loadStep(s) {
     if (results[s]) { setStep(s); return }
+    // 캐시 확인
+    const cacheKey = "deepen_" + receiptId + "_" + s
+    try {
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) { setResults(prev => ({ ...prev, [s]: cached })); setStep(s); return }
+    } catch(e) {}
     setLoading(true)
     try {
       const res = await fetch("/api/deepen", {
@@ -194,8 +200,11 @@ function DeepenModal({ answers, pov, onClose }) {
         body: JSON.stringify({ step: s, answers, pov })
       })
       const data = await res.json()
-      setResults(prev => ({ ...prev, [s]: data.result || "분석 실패" }))
+      const result = data.result || "분석 실패"
+      setResults(prev => ({ ...prev, [s]: result }))
       setStep(s)
+      // 캐시 저장
+      try { localStorage.setItem(cacheKey, result) } catch(e) {}
     } catch (e) {
       setResults(prev => ({ ...prev, [s]: "오류: " + e.message }))
       setStep(s)
@@ -391,7 +400,7 @@ function ReceiptModal({ receipt, onClose }) {
             <button onClick={() => setShowDeepen(true)} style={{ flex: 1, padding: "10px", borderRadius: 12, background: "linear-gradient(135deg,#7C3AED,#A78BFA)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>💡 아이디어 심화하기</button>
             <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 12, background: "#F1F5F9", color: "#475569", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>닫기</button>
           </div>
-          {showDeepen && <DeepenModal answers={receipt.answers} pov={receipt.pov || ""} onClose={() => setShowDeepen(false)} />}
+          {showDeepen && <DeepenModal answers={receipt.answers} pov={receipt.pov || ""} receiptId={receipt.id} onClose={() => setShowDeepen(false)} />}
         </div>
       </div>
     </div>
@@ -507,7 +516,7 @@ export default function AXAgentChat() {
       addMsg("agent", <VerdictCard verdict={v} member={member} receiptId={rId} reason={reason} pov={pov} notionSaved={null} />, { isVerdict: true })
       // Notion 저장 (기존 notion.js 엔드포인트)
       saveToNotion({ receiptId: rId, answers, verdict: v, firstMsg, pov }).then(result => setNotionSaved(result))
-      setDeepenData({ answers, pov })
+      setDeepenData({ answers, pov, receiptId: rId })
       const receipt = { id: rId, title, verdict: v, answers, firstMsg, reason, pov, createdAt: new Date().toISOString(), member }
       setReceipts(persistReceipt(receipt))
 
@@ -726,7 +735,7 @@ export default function AXAgentChat() {
       </div>
 
       {selectedReceipt && <ReceiptModal receipt={selectedReceipt} onClose={() => setSelectedReceipt(null)} />}
-      {showDeepen && deepenData && <DeepenModal answers={deepenData.answers} pov={deepenData.pov} onClose={() => setShowDeepen(false)} />}
+      {showDeepen && deepenData && <DeepenModal answers={deepenData.answers} pov={deepenData.pov} receiptId={deepenData.receiptId} onClose={() => setShowDeepen(false)} />}
     </div>
   )
 }
