@@ -6,8 +6,8 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" })
 
   const { step, answers, pov } = req.body
-  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
-  if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: "API key 없음" })
+  // const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
+  // if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: "API key 없음" })
 
   const context = `
 [과제 정보]
@@ -171,11 +171,11 @@ MVP를 위한 PRD를 작성해주세요. Cursor, Lovable 같은 AI 코딩 에이
   if (!prompt) return res.status(400).json({ error: "Invalid step" })
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://ix.ax.gsretail.com/axsquad-agent/api/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
+        // "x-api-key": ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
