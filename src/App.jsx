@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react"
+import { evaluateWithAI, deepenWithAI } from "./utils/ai"
 
 const NOTIFY_NAME  = "윤진호"
 const NOTIFY_EMAIL = "zeeno0412@gsretail.com"
@@ -64,21 +65,16 @@ function persistReceipt(receipt) {
   } catch { return [] }
 }
 
-// ── API calls → 같은 레포의 /api/* ──────────────────────
+// ── API calls ─────────────────────────────────────────────
 async function evaluatePOVWithAI(answers) {
   const summary = INTERVIEW_QUESTIONS.map(q => `${q.label}: ${answers[q.id] || "미입력"}`).join("\n")
   try {
-    const res = await fetch("/api/evaluate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ summary })
-    })
-    const data = await res.json()
+    const data = await evaluateWithAI(summary)
     const member = SQUAD_MEMBERS.find(m => m.name === data.member) || SQUAD_MEMBERS[2]
     return { verdict: data.verdict || "MAYBE", member, reason: data.reason || "", pov: data.pov || "" }
-  } catch {
-    const filled = Object.values(answers).filter(v => v?.trim().length > 1).length
-    return { verdict: filled >= 6 ? "GO" : filled >= 4 ? "MAYBE" : "NO", member: SQUAD_MEMBERS[2], reason: "", pov: "" }
+  } catch (e) {
+    console.error("AI Evaluation failed:", e)
+    return { verdict: "MAYBE", member: SQUAD_MEMBERS[2], reason: e instanceof Error ? e.message : "AI 평가 중 오류가 발생했습니다.", pov: "" }
   }
 }
 
@@ -194,13 +190,7 @@ function DeepenModal({ answers, pov, receiptId, onClose }) {
     } catch(e) {}
     setLoading(true)
     try {
-      const res = await fetch("/api/deepen", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step: s, answers, pov })
-      })
-      const data = await res.json()
-      const result = data.result || "분석 실패"
+      const result = await deepenWithAI(s, answers, pov)
       setResults(prev => ({ ...prev, [s]: result }))
       setStep(s)
       // 캐시 저장
