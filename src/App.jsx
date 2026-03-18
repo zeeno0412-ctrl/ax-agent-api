@@ -72,12 +72,9 @@ function persistReceipt(receipt) {
 
 // ── API calls ─────────────────────────────────────────────
 async function evaluatePOVWithAI(answers) {
-  const { name: sessionName, team: sessionTeam } = getSessionNameAndTeam()
-  console.log('sessionName', sessionName)
-  console.log('sessionTeam', sessionTeam)
   const summaryLines = [
-    `신청자 이름: ${sessionName || "미입력"}`,
-    `팀명: ${sessionTeam || "미입력"}`,
+    `신청자 이름: ${answers.name || "미입력"}`,
+    `팀명: ${answers.team || "미입력"}`,
     ...INTERVIEW_QUESTIONS.map(q => `${q.label}: ${answers[q.id] || "미입력"}`),
   ]
   const summary = summaryLines.join("\n")
@@ -511,7 +508,8 @@ export default function AXAgentChat() {
     receiptIdRef.current = rId
     agentSay(<span>AI로 과제를 평가하고 있어요... ✨</span>)
 
-    const { verdict: v, member, reason, pov } = await evaluatePOVWithAI(answers)
+    const modifiedAnswers = { name: sessName, team: sessTeam, ...answers }
+    const { verdict: v, member, reason, pov } = await evaluatePOVWithAI(modifiedAnswers)
     verdictRef.current = v; memberRef.current = member; reasonRef.current = reason; povRef.current = pov
     setNotionSaved(null)
 
@@ -519,9 +517,9 @@ export default function AXAgentChat() {
       setStage("verdict")
       addMsg("agent", <VerdictCard verdict={v} member={member} receiptId={rId} reason={reason} pov={pov} notionSaved={null} />, { isVerdict: true })
       // Notion 저장 (기존 notion.js 엔드포인트)
-      saveToNotion({ receiptId: rId, answers, verdict: v, firstMsg, pov }).then(result => setNotionSaved(result))
-      setDeepenData({ answers, pov, receiptId: rId })
-      const receipt = { id: rId, title, verdict: v, answers, firstMsg, reason, pov, createdAt: new Date().toISOString(), member }
+      saveToNotion({ receiptId: rId, modifiedAnswers, verdict: v, firstMsg, pov }).then(result => setNotionSaved(result))
+      setDeepenData({ modifiedAnswers, pov, receiptId: rId })
+      const receipt = { id: rId, title, verdict: v, modifiedAnswers, firstMsg, reason, pov, createdAt: new Date().toISOString(), member }
       setReceipts(persistReceipt(receipt))
 
       if (v === "GO") {
