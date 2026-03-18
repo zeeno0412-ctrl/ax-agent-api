@@ -11,8 +11,6 @@ const SQUAD_MEMBERS = [
 ]
 
 const INTERVIEW_QUESTIONS = [
-  { id: "name",    label: "신청자 이름",   emoji: "🙋", question: "성함이 어떻게 되세요?",                                        placeholder: "예) 홍길동" },
-  { id: "team",    label: "팀명",          emoji: "🏢", question: "소속 팀(부서)을 알려주세요.",                                  placeholder: "예) 디지털혁신팀, 마케팅본부..." },
   { id: "who",     label: "대상",          emoji: "👤", question: "이 문제를 주로 겪는 분이 어떤 역할/팀인지 알 수 있을까요?",     placeholder: "예) 마케팅팀 담당자들, CS 운영팀 전체..." },
   { id: "need",    label: "니즈",          emoji: "💬", question: "그분들이 가장 원하는 게 무엇인가요? 단 한 가지만 꼽는다면?",   placeholder: "예) 매주 수작업 리포트에서 해방되고 싶다..." },
   { id: "insight", label: "인사이트",      emoji: "💡", question: "왜 지금 이 문제가 해결이 안 되고 있다고 생각하시나요?",         placeholder: "예) 데이터가 여러 시스템에 흩어져 있어서..." },
@@ -20,6 +18,13 @@ const INTERVIEW_QUESTIONS = [
   { id: "effect",  label: "기대 효과",     emoji: "📈", question: "해결된다면 어떤 변화가 기대되시나요? (시간, 비용, 품질 등)",   placeholder: "예) 주당 5시간 절약, 오류율 감소..." },
   { id: "data",    label: "데이터/산출물", emoji: "🗂️", question: "필요한 데이터가 있다면 어디에 있나요? 원하는 산출물 형태는?", placeholder: "예) ERP 시스템 내 데이터, 자동 생성 엑셀 리포트..." },
 ]
+
+function getSessionNameAndTeam() {
+  const raw = (typeof window !== "undefined" && sessionStorage.getItem("name")) || ""
+  const slashIdx = raw.indexOf("/")
+  if (slashIdx === -1) return { name: raw, team: "" }
+  return { name: raw.slice(0, slashIdx), team: raw.slice(slashIdx + 1) }
+}
 
 const VERDICT_CONFIG = {
   GO:    { label: "GO",    icon: "🟢", title: "접수 완료!",       desc: "잘 정의된 과제입니다. 현재 3-5월 스프린트 과제가 확정되어 있어, 내부 논의 후 담당자가 연락드릴 예정이에요.",             bg: "#F0FDF4", border: "#34D399", text: "#065F46", badge: "#D1FAE5|#065F46" },
@@ -67,7 +72,13 @@ function persistReceipt(receipt) {
 
 // ── API calls ─────────────────────────────────────────────
 async function evaluatePOVWithAI(answers) {
-  const summary = INTERVIEW_QUESTIONS.map(q => `${q.label}: ${answers[q.id] || "미입력"}`).join("\n")
+  const { name: sessionName, team: sessionTeam } = getSessionNameAndTeam()
+  const summaryLines = [
+    `신청자 이름: ${sessionName || "미입력"}`,
+    `팀명: ${sessionTeam || "미입력"}`,
+    ...INTERVIEW_QUESTIONS.map(q => `${q.label}: ${answers[q.id] || "미입력"}`),
+  ]
+  const summary = summaryLines.join("\n")
   try {
     const data = await evaluateWithAI(summary)
     const member = SQUAD_MEMBERS.find(m => m.name === data.member) || SQUAD_MEMBERS[2]
@@ -492,7 +503,8 @@ export default function AXAgentChat() {
   async function confirmPOV() {
     addMsg("user", "맞아요, 접수해주세요!")
     const rId = makeReceiptId()
-    const applicantName = answers.name ? `[${answers.name}] ` : ""
+    const { name: sessName, team: sessTeam } = getSessionNameAndTeam()
+    const applicantName = sessName ? `[${sessName}] ` : ""
     const title = applicantName + (firstMsg.length > 18 ? firstMsg.slice(0, 18) + "…" : firstMsg)
     receiptIdRef.current = rId
     agentSay(<span>AI로 과제를 평가하고 있어요... ✨</span>)
@@ -514,7 +526,7 @@ export default function AXAgentChat() {
         setTimeout(() => {
           agentSay(
             <span>🎉 접수가 완료되었어요!<br /><br />
-              <strong>{answers.name || "신청자"}</strong>님 ({answers.team || "소속팀 미입력"})<br />
+              <strong>{sessName || "신청자"}</strong>님 ({sessTeam || "소속팀 미입력"})<br />
               접수번호: <strong>{rId}</strong><br /><br />
               <span style={{ color: "#475569" }}>담당자 <strong>{member.name}</strong>님이 직접 연락드릴 예정이에요. 😊</span>
             </span>
