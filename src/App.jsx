@@ -73,6 +73,8 @@ function persistReceipt(receipt) {
 // ── API calls ─────────────────────────────────────────────
 async function evaluatePOVWithAI(answers) {
   const { name: sessionName, team: sessionTeam } = getSessionNameAndTeam()
+  console.log('sessionName', sessionName)
+  console.log('sessionTeam', sessionTeam)
   const summaryLines = [
     `신청자 이름: ${sessionName || "미입력"}`,
     `팀명: ${sessionTeam || "미입력"}`,
