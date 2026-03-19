@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect } from "react"
 import { evaluateWithAI, deepenWithAI } from "./utils/ai"
 
-const NOTIFY_NAME  = "윤진호"
-const NOTIFY_EMAIL = "zeeno0412@gsretail.com"
+function getSessionUser() {
+  if (typeof window === "undefined") return { name: "", email: "" }
+  const name = sessionStorage.getItem("name") || ""
+  const email = sessionStorage.getItem("email") || ""
+  return { name, email }
+}
 
 const SQUAD_MEMBERS = [
   { id: 1, name: "강민수", role: "생성형 AI",    emoji: "🤖", color: "#3B5BDB" },
@@ -422,6 +426,7 @@ export default function AXAgentChat() {
   const [notionSaved, setNotionSaved]         = useState(undefined)
   const [showDeepen, setShowDeepen]           = useState(false)
   const [deepenData, setDeepenData]           = useState(null)
+  const [sessionUser, setSessionUser]         = useState(() => getSessionUser())
   const bottomRef    = useRef(null)
   const isSubmit     = useRef(false)
   const verdictRef   = useRef(null)
@@ -559,6 +564,11 @@ export default function AXAgentChat() {
     verdictRef.current = null; memberRef.current = null; receiptIdRef.current = null; reasonRef.current = ""
   }
 
+  function handleLogout() {
+    sessionStorage.clear()
+    window.location.reload()
+  }
+
   const showInput = stage === "interview-init" || stage === "interview"
 
   return (
@@ -624,13 +634,17 @@ export default function AXAgentChat() {
         </div>
 
         <div style={{ padding: "10px 16px", borderTop: "1px solid #F1F5F9" }}>
-          <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>알림 수신자</p>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>🔧</div>
-            <div style={{ minWidth: 0 }}>
-              <p style={{ fontSize: 11, fontWeight: 600, color: "#334155", margin: 0 }}>{NOTIFY_NAME}</p>
-              <p style={{ fontSize: 10, color: "#94A3B8", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{NOTIFY_EMAIL}</p>
+            <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>👤</div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "#334155", margin: 0 }}>{sessionUser.name || "사용자"}</p>
+              <p style={{ fontSize: 10, color: "#94A3B8", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sessionUser.email || ""}</p>
             </div>
+            <button onClick={handleLogout} style={{ padding: "4px 10px", borderRadius: 8, background: "#F1F5F9", color: "#64748B", fontSize: 10, fontWeight: 600, border: "none", cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#E2E8F0"; e.currentTarget.style.color = "#EF4444" }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#F1F5F9"; e.currentTarget.style.color = "#64748B" }}>
+              로그아웃
+            </button>
           </div>
         </div>
       </div>
