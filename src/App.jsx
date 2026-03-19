@@ -522,9 +522,9 @@ export default function AXAgentChat() {
       setStage("verdict")
       addMsg("agent", <VerdictCard verdict={v} member={member} receiptId={rId} reason={reason} pov={pov} notionSaved={null} />, { isVerdict: true })
       // Notion 저장 (기존 notion.js 엔드포인트)
-      saveToNotion({ receiptId: rId, modifiedAnswers, verdict: v, firstMsg, pov }).then(result => setNotionSaved(result))
-      setDeepenData({ modifiedAnswers, pov, receiptId: rId })
-      const receipt = { id: rId, title, verdict: v, modifiedAnswers, firstMsg, reason, pov, createdAt: new Date().toISOString(), member }
+      saveToNotion({ receiptId: rId, answers: modifiedAnswers, verdict: v, firstMsg, pov }).then(result => setNotionSaved(result))
+      setDeepenData({ answers: modifiedAnswers, pov, receiptId: rId })
+      const receipt = { id: rId, title, verdict: v, answers: modifiedAnswers, firstMsg, reason, pov, createdAt: new Date().toISOString(), member }
       setReceipts(persistReceipt(receipt))
 
       if (v === "GO") {
