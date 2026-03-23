@@ -1,6 +1,6 @@
 const NOTION_API_URL = "https://ix.ax.gsretail.com/axsquad-agent/api/v2/notion";
-const NOTION_DB_ID = import.meta.env.NEXT_PUBLIC_NOTION_DB_ID;
-const NOTION_TOKEN = import.meta.env.NEXT_PUBLIC_NOTION_TOKEN;
+const NOTION_DB_ID = import.meta.env.NOTION_DB_ID;
+const NOTION_TOKEN = import.meta.env.NOTION_TOKEN;
 const NOTION_QUERY_DB_ID = "31336db6-f007-803a-b949-000bbc72fdfd";
 
 function getAuthHeaders() {
