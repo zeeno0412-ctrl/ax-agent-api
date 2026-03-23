@@ -1,6 +1,5 @@
 const NOTION_API_URL = "https://ix.ax.gsretail.com/axsquad-agent/api/v2/notion";
 const NOTION_DB_ID = import.meta.env.NOTION_DB_ID;
-const NOTION_TOKEN = import.meta.env.NOTION_TOKEN;
 const NOTION_QUERY_DB_ID = "31336db6-f007-803a-b949-000bbc72fdfd";
 
 function getAuthHeaders() {
@@ -18,7 +17,7 @@ export async function saveToNotion({ receiptId, answers, verdict, firstMsg, pov 
       body: JSON.stringify({
         request_type: "insert",
         datasource_id: NOTION_DB_ID,
-        workspace_secret: NOTION_TOKEN,
+        workspace_secret: "",
         request_body: {
           parent: { database_id: NOTION_DB_ID },
           properties: {
@@ -56,7 +55,7 @@ export async function queryNotion(filter = {}) {
       body: JSON.stringify({
         request_type: "query",
         datasource_id: NOTION_QUERY_DB_ID,
-        workspace_secret: NOTION_TOKEN,
+        workspace_secret: "",
         request_body: {
           filter,
           sorts: [{ property: "접수일시", direction: "descending" }]
