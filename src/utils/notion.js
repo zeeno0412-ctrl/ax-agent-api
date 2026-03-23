@@ -70,3 +70,31 @@ export async function queryNotion(filter = {}) {
     return { ok: false, error: e.message };
   }
 }
+
+const NOTION_USER_DB_ID = "32c36db6-f007-8054-923c-000b75b70e7f";
+
+export async function queryNotionUsers() {
+  try {
+    const res = await fetch(NOTION_API_URL, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        request_type: "user_list",
+        datasource_id: NOTION_USER_DB_ID,
+        workspace_secret: "",
+        request_body: {
+          filter: {
+            property: "사용여부",
+            select: { equals: "Y" }
+          }
+        }
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) return { ok: false, error: data.error || data.message };
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}

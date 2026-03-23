@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { InteractionStatus } from "@azure/msal-browser";
 import { useMsal } from "@azure/msal-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useUserStore, ALLOWED_IPS } from "../stores/useUserStore";
+import { queryNotionUsers } from "../utils/notion";
 
 export default function AuthStateSync() {
   const { accounts, inProgress, instance } = useMsal();
@@ -10,11 +11,29 @@ export default function AuthStateSync() {
   const navigate = useNavigate();
   const clearUser = useUserStore((state) => state.clearUser);
   const ipaddr = useUserStore((state) => state.ipaddr);
+  const [allowedEmails, setAllowedEmails] = useState(null);
 
   useEffect(() => {
-    if (inProgress !== InteractionStatus.None) {
-      return;
-    }
+    if (inProgress !== InteractionStatus.None) return;
+    const activeAccount = instance.getActiveAccount() ?? accounts[0] ?? null;
+    const isAllowedIp = ipaddr && ALLOWED_IPS.includes(ipaddr);
+    if (!activeAccount || !isAllowedIp || allowedEmails !== null) return;
+
+    queryNotionUsers().then((result) => {
+      if (result.ok && result.data?.results) {
+        const emails = result.data.results
+          .map((p) => p.properties?.["허용 계정/그룹"]?.title?.[0]?.plain_text || "")
+          .filter(Boolean)
+          .map((e) => e.toLowerCase());
+        setAllowedEmails(emails);
+      } else {
+        setAllowedEmails([]);
+      }
+    });
+  }, [accounts, inProgress, instance, ipaddr, allowedEmails]);
+
+  useEffect(() => {
+    if (inProgress !== InteractionStatus.None) return;
 
     const activeAccount = instance.getActiveAccount() ?? accounts[0] ?? null;
 
@@ -28,7 +47,17 @@ export default function AuthStateSync() {
         return;
       }
 
-      if (location.pathname === "/login" || location.pathname === "/restricted") {
+      if (allowedEmails === null) return;
+
+      const email = (sessionStorage.getItem("email") || "").toLowerCase();
+      if (!allowedEmails.includes(email)) {
+        if (location.pathname !== "/unauthorized") {
+          navigate("/unauthorized", { replace: true });
+        }
+        return;
+      }
+
+      if (["/login", "/restricted", "/unauthorized"].includes(location.pathname)) {
         navigate("/", { replace: true });
       }
       return;
@@ -47,6 +76,7 @@ export default function AuthStateSync() {
     ipaddr,
     location.pathname,
     navigate,
+    allowedEmails,
   ]);
 
   return null;
