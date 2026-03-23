@@ -11,6 +11,7 @@ export default function AuthStateSync() {
   const navigate = useNavigate();
   const clearUser = useUserStore((state) => state.clearUser);
   const ipaddr = useUserStore((state) => state.ipaddr);
+  const setUserAuthorized = useUserStore((state) => state.setUserAuthorized);
   const [allowedEmails, setAllowedEmails] = useState(null);
 
   useEffect(() => {
@@ -51,12 +52,14 @@ export default function AuthStateSync() {
 
       const email = (sessionStorage.getItem("email") || "").toLowerCase();
       if (!allowedEmails.includes(email)) {
+        setUserAuthorized(false);
         if (location.pathname !== "/unauthorized") {
           navigate("/unauthorized", { replace: true });
         }
         return;
       }
 
+      setUserAuthorized(true);
       if (["/login", "/restricted", "/unauthorized"].includes(location.pathname)) {
         navigate("/", { replace: true });
       }

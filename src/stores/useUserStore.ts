@@ -30,6 +30,8 @@ type UserState = {
   accessToken: string | null;
   ipaddr: string | null;
   isAuthenticated: boolean;
+  isUserAuthorized: boolean | null;
+  setUserAuthorized: (value: boolean | null) => void;
   login: (
     email: string,
     name: string,
@@ -47,6 +49,8 @@ export const useUserStore = create<UserState>((set) => ({
   accessToken: null,
   ipaddr: null,
   isAuthenticated: false,
+  isUserAuthorized: null,
+  setUserAuthorized: (value) => set({ isUserAuthorized: value }),
 
   login: (email, name, idToken, accessToken, ipaddr) => {
     setSessionValue("idToken", idToken);
@@ -79,6 +83,7 @@ export const useUserStore = create<UserState>((set) => ({
       accessToken: null,
       ipaddr: null,
       isAuthenticated: false,
+      isUserAuthorized: null,
     });
   },
 }));

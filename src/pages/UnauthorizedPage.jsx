@@ -114,6 +114,25 @@ export default function UnauthorizedPage() {
             </p>
           </div>
         )}
+
+        <button
+          onClick={() => { sessionStorage.clear(); window.location.reload(); }}
+          style={{
+            padding: "10px 24px",
+            borderRadius: 14,
+            background: "#F1F5F9",
+            color: "#64748B",
+            fontSize: 13,
+            fontWeight: 600,
+            border: "none",
+            cursor: "pointer",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "#E2E8F0"; e.currentTarget.style.color = "#EF4444"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "#F1F5F9"; e.currentTarget.style.color = "#64748B"; }}
+        >
+          다른 계정으로 로그인
+        </button>
       </div>
     </div>
   );

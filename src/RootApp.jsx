@@ -6,6 +6,7 @@ import AuthStateSync from "./auth/AuthStateSync.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RestrictedPage from "./pages/RestrictedPage.jsx";
 import UnauthorizedPage from "./pages/UnauthorizedPage.jsx";
+import { useUserStore } from "./stores/useUserStore";
 
 function LoadingScreen({ title, description }) {
   return (
@@ -71,6 +72,7 @@ function hasAuthenticatedAccount(instance, accounts) {
 function HomeRoute() {
   const { accounts, inProgress, instance } = useMsal();
   const isAuthenticated = useIsAuthenticated();
+  const isUserAuthorized = useUserStore((state) => state.isUserAuthorized);
 
   if (inProgress !== InteractionStatus.None) {
     return (
@@ -83,6 +85,15 @@ function HomeRoute() {
 
   if (!isAuthenticated && !hasAuthenticatedAccount(instance, accounts)) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (isUserAuthorized === null) {
+    return (
+      <LoadingScreen
+        title="접근 권한을 확인하는 중"
+        description="사용자 인가 정보를 확인하고 있습니다."
+      />
+    );
   }
 
   return <App />;
