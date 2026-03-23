@@ -1,2 +1,7 @@
 {
+  "framework": "vite",
+  "devCommand": "vite --port 3000",
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
 }
