@@ -13,14 +13,13 @@ const configuredAuthority =
   env.VITE_AZURE_AD_AUTHORITY ?? env.NEXT_PUBLIC_AZURE_AD_AUTHORITY ?? "";
 const authority =
   configuredAuthority ||
-  (tenantId ? `https://login.microsoftonline.com/${tenantId}` : "");
+  (tenantId ? `https://login.microsoftonline.com/${tenantId}/v2.0` : "");
 const redirectUri =
   env.VITE_AZURE_AD_REDIRECT_URI ?? env.NEXT_PUBLIC_AZURE_AD_REDIRECT_URI ?? "";
 const fallbackRedirectUri =
   typeof window !== "undefined" ? window.location.origin : "http://localhost:5173";
 
 export const hasRequiredMsalEnv = Boolean(clientId && authority && redirectUri);
-
 export const msalConfig: Configuration = {
   auth: {
     clientId: clientId || "00000000-0000-0000-0000-000000000000",
@@ -34,5 +33,5 @@ export const msalConfig: Configuration = {
 };
 
 export const loginRequest: RedirectRequest = {
-  scopes: ["openid", "profile", "email"],
+  scopes: ["api://630155e4-c2b1-4f65-bf07-c902b4455ad5/access_as_user"],
 };

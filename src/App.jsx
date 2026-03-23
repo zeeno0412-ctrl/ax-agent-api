@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { evaluateWithAI, deepenWithAI } from "./utils/ai"
+import { saveToNotion, queryNotion } from "./utils/notion"
 
 function getSessionUser() {
   if (typeof window === "undefined") return { name: "", email: "" }
@@ -52,6 +53,38 @@ const SPRINTS = [
   { label: "AX) FDE 역량강화",                         date: "2026.07", color: "#CBD5E1" },
 ]
 
+// ── Notion response parser ────────────────────────────────
+function parseNotionPage(page) {
+  const p = page.properties || {}
+  const text = (prop) =>
+    prop?.title?.[0]?.plain_text || prop?.rich_text?.[0]?.plain_text || ""
+  const sel = (prop) => prop?.select?.name || ""
+
+  const id = text(p["접수번호"])
+  const title = text(p["과제명"])
+  const verdict = sel(p["판정"]) || "MAYBE"
+  return {
+    id: id || page.id,
+    title,
+    verdict,
+    answers: {
+      name:    text(p["신청자"]),
+      team:    text(p["팀명"]),
+      who:     text(p["대상"]),
+      need:    text(p["니즈"]),
+      insight: text(p["인사이트"]),
+      current: text(p["현재상황"]),
+      effect:  text(p["기대효과"]),
+      data:    text(p["데이터산출물"]),
+    },
+    pov:       text(p["PoV"]),
+    reason:    "",
+    firstMsg:  title,
+    createdAt: p["접수일시"]?.date?.start || page.created_time,
+    member:    null,
+  }
+}
+
 // ── utils ────────────────────────────────────────────────
 function makeReceiptId() {
   return "AX-" + new Date().getFullYear() + "-" + String(Math.floor(Math.random() * 900) + 100)
@@ -61,18 +94,6 @@ function formatDate(iso) {
   return `${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`
 }
 
-// ── storage (localStorage) ───────────────────────────────
-const STORAGE_KEY = "ax-receipts-v2"
-function loadReceipts() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]") } catch { return [] }
-}
-function persistReceipt(receipt) {
-  try {
-    const list = [receipt, ...loadReceipts()].slice(0, 50)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
-    return list
-  } catch { return [] }
-}
 
 // ── API calls ─────────────────────────────────────────────
 async function evaluatePOVWithAI(answers) {
@@ -92,18 +113,6 @@ async function evaluatePOVWithAI(answers) {
   }
 }
 
-async function saveToNotion({ receiptId, answers, verdict, firstMsg, pov }) {
-  try {
-    const res = await fetch("/api/notion", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ receiptId, answers, verdict, firstMsg, pov })
-    })
-    return await res.json()
-  } catch (e) {
-    return { ok: false, error: e.message }
-  }
-}
 
 // ── components ───────────────────────────────────────────
 function AgentAvatar({ size = "md" }) {
@@ -420,7 +429,7 @@ export default function AXAgentChat() {
   const [firstMsg, setFirstMsg]               = useState("")
   const [input, setInput]                     = useState("")
   const [isTyping, setIsTyping]               = useState(false)
-  const [receipts, setReceipts]               = useState(() => loadReceipts())
+  const [receipts, setReceipts]               = useState([])
   const [selectedReceipt, setSelectedReceipt] = useState(null)
   const [sidebarTab, setSidebarTab]           = useState("history")
   const [notionSaved, setNotionSaved]         = useState(undefined)
@@ -436,6 +445,16 @@ export default function AXAgentChat() {
   const povRef       = useRef("")
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, isTyping, stage])
+
+  function refreshReceipts() {
+    return queryNotion().then(result => {
+      if (result.ok && result.data?.results) {
+        setReceipts(result.data.results.map(parseNotionPage))
+      }
+    })
+  }
+
+  useEffect(() => { refreshReceipts() }, [])
 
   // notionSaved 바뀌면 마지막 VerdictCard 업데이트
   useEffect(() => {
@@ -522,10 +541,11 @@ export default function AXAgentChat() {
       setStage("verdict")
       addMsg("agent", <VerdictCard verdict={v} member={member} receiptId={rId} reason={reason} pov={pov} notionSaved={null} />, { isVerdict: true })
       // Notion 저장 (기존 notion.js 엔드포인트)
-      saveToNotion({ receiptId: rId, answers: modifiedAnswers, verdict: v, firstMsg, pov }).then(result => setNotionSaved(result))
+      saveToNotion({ receiptId: rId, answers: modifiedAnswers, verdict: v, firstMsg, pov }).then(result => {
+        setNotionSaved(result)
+        refreshReceipts()
+      })
       setDeepenData({ answers: modifiedAnswers, pov, receiptId: rId })
-      const receipt = { id: rId, title, verdict: v, answers: modifiedAnswers, firstMsg, reason, pov, createdAt: new Date().toISOString(), member }
-      setReceipts(persistReceipt(receipt))
 
       if (v === "GO") {
         setTimeout(() => {
@@ -612,6 +632,7 @@ export default function AXAgentChat() {
             }}>{label}</button>
           ))}
         </div>
+
 
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 16px" }}>
           {sidebarTab === "history" ? (

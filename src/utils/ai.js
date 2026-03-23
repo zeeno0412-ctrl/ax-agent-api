@@ -1,13 +1,17 @@
-const EXTERNAL_API_URL = "https://ix.ax.gsretail.com/axsquad-agent/api/v1/messages";
+const EXTERNAL_API_URL = "https://ix.ax.gsretail.com/axsquad-agent/api/v2/messages";
+
+function getAuthHeaders() {
+  const token = sessionStorage.getItem("accessToken");
+  const headers = { "Content-Type": "application/json", "anthropic-version": "2023-06-01" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
+}
 
 async function callAXAgentAPI(prompt, maxTokens = 2000) {
   const response = await fetch(EXTERNAL_API_URL, {
     targetAddressSpace: "local",
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "anthropic-version": "2023-06-01"
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
       max_tokens: maxTokens,
