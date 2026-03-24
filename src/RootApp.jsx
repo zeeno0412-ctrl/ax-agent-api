@@ -6,6 +6,7 @@ import AuthStateSync from "./auth/AuthStateSync.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RestrictedPage from "./pages/RestrictedPage.jsx";
 import UnauthorizedPage from "./pages/UnauthorizedPage.jsx";
+import UnsupportedBrowserPage from "./pages/UnsupportedBrowserPage.jsx";
 import { useUserStore } from "./stores/useUserStore";
 
 function LoadingScreen({ title, description }) {
@@ -128,6 +129,7 @@ export default function RootApp() {
         <Route path="/login" element={<LoginRoute />} />
         <Route path="/restricted" element={<RestrictedPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        <Route path="/unsupported-browser" element={<UnsupportedBrowserPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

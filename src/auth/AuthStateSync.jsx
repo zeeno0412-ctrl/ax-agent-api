@@ -27,6 +27,8 @@ export default function AuthStateSync() {
           .filter(Boolean)
           .map((e) => e.toLowerCase());
         setAllowedEmails(emails);
+      } else if (result.isFetchError) {
+        navigate("/unsupported-browser", { replace: true });
       } else {
         setAllowedEmails([]);
       }

@@ -95,6 +95,6 @@ export async function queryNotionUsers() {
     if (!res.ok) return { ok: false, error: data.error || data.message };
     return { ok: true, data };
   } catch (e) {
-    return { ok: false, error: e.message };
+    return { ok: false, error: e.message, isFetchError: true };
   }
 }
