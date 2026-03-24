@@ -26,7 +26,7 @@ const cardStyle = {
 
 const SUPPORTED_BROWSERS = [
   { name: "Edge", icon: "🌐", color: "#0078D4" },
-  { name: "Chrome", icon: "🔵", color: "#4285F4" },
+  { name: "Chrome", icon: "", color: "#4285F4" },
   { name: "Safari", icon: "🧭", color: "#006CFF" },
 ];
 
@@ -43,7 +43,7 @@ export default function UnsupportedBrowserPage() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "linear-gradient(135deg, #DC2626, #EF4444)",
+            background: "linear-gradient(135deg,rgba(220, 38, 38, 0.25),rgba(239, 68, 68, 0.25))",
             boxShadow: "0 16px 40px rgba(239,68,68,0.25)",
             color: "white",
             fontSize: 28,
@@ -137,26 +137,6 @@ export default function UnsupportedBrowserPage() {
           </div>
         </div>
 
-        <div
-          style={{
-            padding: "12px 16px",
-            borderRadius: 16,
-            background: "#FEF2F2",
-            border: "1px solid #FECACA",
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              fontSize: 13,
-              color: "#991B1B",
-              lineHeight: 1.6,
-            }}
-          >
-            해당 브라우저에서 서비스가 정상적으로 작동할 수 없습니다.
-          </p>
-        </div>
-
         <p
           style={{
             margin: 0,
@@ -176,34 +156,9 @@ export default function UnsupportedBrowserPage() {
               textDecoration: "underline",
             }}
           >
-            Teams 채팅
+            Teams 문의
           </a>
         </p>
-
-        <button
-          onClick={() => window.location.reload()}
-          style={{
-            padding: "10px 24px",
-            borderRadius: 14,
-            background: "#F1F5F9",
-            color: "#64748B",
-            fontSize: 13,
-            fontWeight: 600,
-            border: "none",
-            cursor: "pointer",
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#E2E8F0";
-            e.currentTarget.style.color = "#334155";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "#F1F5F9";
-            e.currentTarget.style.color = "#64748B";
-          }}
-        >
-          새로고침
-        </button>
       </div>
     </div>
   );
