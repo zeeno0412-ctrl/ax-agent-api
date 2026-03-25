@@ -511,6 +511,7 @@ export default function AXAgentChat() {
   }
 
   async function confirmPOV() {
+    setStage("submitting")
     addMsg("user", "맞아요, 접수해주세요!")
     const rId = makeReceiptId()
     const { name: sessName, team: sessTeam } = getSessionNameAndTeam()
