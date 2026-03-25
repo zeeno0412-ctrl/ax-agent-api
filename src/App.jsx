@@ -81,7 +81,6 @@ function parseNotionPage(page) {
     reason:    "",
     firstMsg:  title,
     createdAt: p["접수일시"]?.date?.start || page.created_time,
-    member:    null,
   }
 }
 
@@ -105,10 +104,10 @@ async function evaluatePOVWithAI(answers) {
   const summary = summaryLines.join("\n")
   try {
     const data = await evaluateWithAI(summary)
-    return { verdict: data.verdict || "MAYBE", member, reason: data.reason || "", pov: data.pov || "" }
+    return { verdict: data.verdict || "MAYBE", reason: data.reason || "", pov: data.pov || "" }
   } catch (e) {
     console.error("AI Evaluation failed:", e)
-    return { verdict: "MAYBE", member: SQUAD_MEMBERS[2], reason: e instanceof Error ? e.message : "AI 평가 중 오류가 발생했습니다.", pov: "" }
+    return { verdict: "MAYBE", reason: e instanceof Error ? e.message : "AI 평가 중 오류가 발생했습니다.", pov: "" }
   }
 }
 
@@ -317,16 +316,6 @@ function VerdictCard({ verdict, receiptId, reason, pov, notionSaved }) {
       {reason && <p style={{ fontSize: 11, color: "#64748B", fontStyle: "italic", marginBottom: 8, background: "rgba(255,255,255,0.7)", borderRadius: 8, padding: "6px 12px" }}>💬 {reason}</p>}
       {pov && <p style={{ fontSize: 12, color: "#1D4ED8", marginBottom: 12, background: "#EFF6FF", borderRadius: 8, padding: "8px 12px", lineHeight: 1.6 }}>📌 <strong>PoV</strong><br/>{pov}</p>}
       {receiptId && <p style={{ fontSize: 11, color: "#94A3B8", marginBottom: 12 }}>접수번호: <strong style={{ color: "#475569" }}>{receiptId}</strong></p>}
-      {verdict === "GO" && member && (
-        <div style={{ background: "white", borderRadius: 12, padding: 12, display: "flex", alignItems: "center", gap: 12, border: "1px solid #F1F5F9", marginBottom: 8 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0, background: member.color + "20" }}>{member.emoji}</div>
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#334155", margin: 0 }}>{member.name}</p>
-            <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>{member.role} 담당</p>
-          </div>
-          <span style={{ marginLeft: "auto", fontSize: 11, padding: "3px 8px", borderRadius: 99, fontWeight: 500, background: "#D1FAE5", color: "#065F46" }}>연결됨</span>
-        </div>
-      )}
       <div style={{
         fontSize: 11, borderRadius: 8, padding: "6px 12px",
         background: saving ? "#F1F5F9" : notionSaved?.ok ? "#EFF6FF" : "#FFFBEB",
@@ -438,7 +427,6 @@ export default function AXAgentChat() {
   const bottomRef    = useRef(null)
   const isSubmit     = useRef(false)
   const verdictRef   = useRef(null)
-  const memberRef    = useRef(null)
   const receiptIdRef = useRef(null)
   const reasonRef    = useRef("")
   const povRef       = useRef("")
@@ -462,7 +450,7 @@ export default function AXAgentChat() {
       const copy = [...prev]
       for (let i = copy.length - 1; i >= 0; i--) {
         if (copy[i].isVerdict) {
-          copy[i] = { ...copy[i], content: <VerdictCard verdict={verdictRef.current} member={memberRef.current} receiptId={receiptIdRef.current} reason={reasonRef.current} pov={povRef.current} notionSaved={notionSaved} /> }
+          copy[i] = { ...copy[i], content: <VerdictCard verdict={verdictRef.current} receiptId={receiptIdRef.current} reason={reasonRef.current} pov={povRef.current} notionSaved={notionSaved} /> }
           break
         }
       }
@@ -532,13 +520,13 @@ export default function AXAgentChat() {
     agentSay(<span>AI로 과제를 평가하고 있어요... ✨</span>)
 
     const modifiedAnswers = { name: sessName, team: sessTeam, ...answers }
-    const { verdict: v, member, reason, pov } = await evaluatePOVWithAI(modifiedAnswers)
-    verdictRef.current = v; memberRef.current = member; reasonRef.current = reason; povRef.current = pov
+    const { verdict: v, reason, pov } = await evaluatePOVWithAI(modifiedAnswers)
+    verdictRef.current = v; reasonRef.current = reason; povRef.current = pov
     setNotionSaved(null)
 
     setTimeout(() => {
       setStage("verdict")
-      addMsg("agent", <VerdictCard verdict={v} member={member} receiptId={rId} reason={reason} pov={pov} notionSaved={null} />, { isVerdict: true })
+      addMsg("agent", <VerdictCard verdict={v} receiptId={rId} reason={reason} pov={pov} notionSaved={null} />, { isVerdict: true })
       // Notion 저장 (기존 notion.js 엔드포인트)
       saveToNotion({ receiptId: rId, answers: modifiedAnswers, verdict: v, firstMsg, pov }).then(result => {
         setNotionSaved(result)
@@ -580,7 +568,7 @@ export default function AXAgentChat() {
   function reset() {
     setStage("welcome"); setMessages([]); setCurrentQ(0); setAnswers({})
     setFirstMsg(""); setInput(""); setNotionSaved(undefined)
-    verdictRef.current = null; memberRef.current = null; receiptIdRef.current = null; reasonRef.current = ""
+    verdictRef.current = null; receiptIdRef.current = null; reasonRef.current = ""
   }
 
   function handleLogout() {
