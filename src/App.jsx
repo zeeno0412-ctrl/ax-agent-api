@@ -105,7 +105,6 @@ async function evaluatePOVWithAI(answers) {
   const summary = summaryLines.join("\n")
   try {
     const data = await evaluateWithAI(summary)
-    const member = SQUAD_MEMBERS.find(m => m.name === data.member) || SQUAD_MEMBERS[2]
     return { verdict: data.verdict || "MAYBE", member, reason: data.reason || "", pov: data.pov || "" }
   } catch (e) {
     console.error("AI Evaluation failed:", e)
@@ -302,7 +301,7 @@ function DeepenModal({ answers, pov, receiptId, onClose }) {
   )
 }
 
-function VerdictCard({ verdict, member, receiptId, reason, pov, notionSaved }) {
+function VerdictCard({ verdict, receiptId, reason, pov, notionSaved }) {
   const cfg = VERDICT_CONFIG[verdict]
   if (!cfg) return null
   const [badgeBg, badgeText] = cfg.badge.split("|")
@@ -553,7 +552,7 @@ export default function AXAgentChat() {
             <span>🎉 접수가 완료되었어요!<br /><br />
               <strong>{sessName || "신청자"}</strong>님 ({sessTeam || "소속팀 미입력"})<br />
               접수번호: <strong>{rId}</strong><br /><br />
-              <span style={{ color: "#475569" }}>담당자 <strong>{member.name}</strong>님이 직접 연락드릴 예정이에요. 😊</span>
+              <span style={{ color: "#475569" }}>AX스쿼드 담당자 분이 직접 연락드릴 예정이에요. 😊</span>
             </span>
           )
           setTimeout(() => setStage("done"), 1200)
@@ -617,7 +616,6 @@ export default function AXAgentChat() {
               <span style={{ fontSize: 14 }}>{m.emoji}</span>
               <div>
                 <p style={{ fontSize: 11, fontWeight: 600, color: "#334155", margin: 0 }}>{m.role}</p>
-                <p style={{ fontSize: 10, color: "#94A3B8", margin: 0 }}>{m.name}</p>
               </div>
             </div>
           ))}
