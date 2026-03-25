@@ -28,15 +28,15 @@ async function callAXAgentAPI(prompt, maxTokens = 2000) {
 
 export async function evaluateWithAI(summary) {
   const prompt = `당신은 AX스쿼드(AI/DX 과제 담당팀)의 과제 접수 심사자입니다.
-아래 접수 내용을 보고 판정, 담당자, PoV를 JSON으로만 응답하세요.
+아래 접수 내용을 보고 판정, PoV를 JSON으로만 응답하세요.
 
 [접수 내용]
 ${summary}
 
 [지원 영역]
-- 생성형 AI 도입 (챗봇, 문서 자동화, RAG 등) → 강민수
-- 업무 자동화 (RPA, 데이터 파이프라인, 리포트 자동화 등) → 이유미
-- AX 역량 강화 (AI 교육, 내재화, 문화 확산 등) → 서은영
+- 생성형 AI 도입 (챗봇, 문서 자동화, RAG 등)
+- 업무 자동화 (RPA, 데이터 파이프라인, 리포트 자동화 등)
+- AX 역량 강화 (AI 교육, 내재화, 문화 확산 등)
 
 [판정 기준]
 - GO: 문제 명확, AX 지원 가능, 기대효과 구체적
@@ -49,7 +49,7 @@ PoV는 아래 형식으로 한 문장으로 작성:
 "[대상]는 [현재상황]에 [니즈/어려움]이 있다. 왜냐하면 [인사이트]하기 때문이다."
 
 반드시 아래 JSON만 응답 (다른 텍스트 없이):
-{"verdict":"GO","member":"강민수","reason":"판정 이유 한 문장","pov":"[대상]는 [현재상황]에 [니즈] 있다. 왜냐하면 [인사이트]하기 때문이다."}`;
+{"verdict":"GO", "reason":"판정 이유 한 문장","pov":"[대상]는 [현재상황]에 [니즈] 있다. 왜냐하면 [인사이트]하기 때문이다."}`;
 
   try {
     const text = await callAXAgentAPI(prompt, 800);
@@ -57,7 +57,6 @@ PoV는 아래 형식으로 한 문장으로 작성:
   } catch (e) {
     return {
       verdict: "MAYBE",
-      member: "서은영",
       reason: e instanceof Error ? e.message : "AI 평가 중 오류가 발생했습니다.",
       pov: ""
     };
