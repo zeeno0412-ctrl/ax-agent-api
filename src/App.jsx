@@ -398,7 +398,7 @@ function ReceiptModal({ receipt, onClose }) {
             ))}
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <button onClick={() => setShowDeepen(true)} style={{ flex: 1, padding: "10px", borderRadius: 12, background: "linear-gradient(135deg,#7C3AED,#A78BFA)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>💡 아이디어 심화하기</button>
+            <button onClick={() => receipt.verdict === "GO" && setShowDeepen(true)} style={{ flex: 1, padding: "10px", borderRadius: 12, background: receipt.verdict === "GO" ? "linear-gradient(135deg,#7C3AED,#A78BFA)" : "#E2E8F0", color: receipt.verdict === "GO" ? "white" : "#94A3B8", fontSize: 13, fontWeight: 600, border: "none", cursor: receipt.verdict === "GO" ? "pointer" : "not-allowed" }}>💡 아이디어 심화하기</button>
             <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 12, background: "#F1F5F9", color: "#475569", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>닫기</button>
           </div>
           {showDeepen && <DeepenModal answers={receipt.answers} pov={receipt.pov || ""} receiptId={receipt.id} onClose={() => setShowDeepen(false)} />}
@@ -532,7 +532,7 @@ export default function AXAgentChat() {
         setNotionSaved(result)
         refreshReceipts()
       })
-      setDeepenData({ answers: modifiedAnswers, pov, receiptId: rId })
+      setDeepenData({ answers: modifiedAnswers, pov, receiptId: rId, verdict: v })
 
       if (v === "GO") {
         setTimeout(() => {
@@ -724,7 +724,7 @@ export default function AXAgentChat() {
             <div style={{ paddingLeft: 52 }}>
               <div style={{ display: "flex", gap: 8 }}>
                 {deepenData && (
-                  <button onClick={() => setShowDeepen(true)} style={{ padding: "8px 16px", borderRadius: 12, background: "linear-gradient(135deg,#7C3AED,#A78BFA)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
+                  <button onClick={() => setShowDeepen(true)} disabled={deepenData.verdict !== "GO"} style={{ padding: "8px 16px", borderRadius: 12, background: deepenData.verdict === "GO" ? "linear-gradient(135deg,#7C3AED,#A78BFA)" : "#E2E8F0", color: deepenData.verdict === "GO" ? "white" : "#94A3B8", fontSize: 13, fontWeight: 600, border: "none", cursor: deepenData.verdict === "GO" ? "pointer" : "not-allowed", opacity: deepenData.verdict === "GO" ? 1 : 0.5 }}>
                     💡 아이디어 심화하기
                   </button>
                 )}
