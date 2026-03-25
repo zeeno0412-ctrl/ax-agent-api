@@ -147,7 +147,7 @@ export default function UnsupportedBrowserPage() {
         >
           문의:{" "}
           <a
-            href="https://teams.microsoft.com/l/chat/0/0?users=kang.sa@gsretail.com"
+            href="https://teams.microsoft.com/l/chat/0/0?users=hyoslee@gsretail.com"
             target="_blank"
             rel="noopener noreferrer"
             style={{

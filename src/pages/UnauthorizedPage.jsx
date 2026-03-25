@@ -82,7 +82,7 @@ export default function UnauthorizedPage() {
           >
             이용권한 문의:{" "}
             <a
-              href="https://teams.microsoft.com/l/chat/0/0?users=kang.sa@gsretail.com"
+              href="https://teams.microsoft.com/l/chat/0/0?users=hyoslee@gsretail.com"
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: "#CA8A04", fontWeight: 600, textDecoration: "underline" }}
