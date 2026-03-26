@@ -719,6 +719,14 @@ export default function AXAgentChat() {
             </div>
           )}
 
+          {stage === "interview" && !isTyping && (
+            <div style={{ display: "flex", gap: 8, paddingLeft: 52 }}>
+              <button onClick={handlePassQuestion} style={{ padding: "8px 16px", borderRadius: 12, background: "#F1F5F9", color: "#94A3B8", fontSize: 13, fontWeight: 600, border: "1px solid #E2E8F0", cursor: "pointer" }}>
+                🙅 잘 모르겠어요 (Pass)
+              </button>
+            </div>
+          )}
+
           {stage === "pov-confirm" && !isTyping && (
             <div style={{ display: "flex", gap: 8, paddingLeft: 52 }}>
               <button onClick={confirmPOV} style={{ padding: "8px 16px", borderRadius: 12, background: "linear-gradient(135deg,#1E3A8A,#3B82F6)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
@@ -763,14 +771,7 @@ export default function AXAgentChat() {
                 </svg>
               </button>
             </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
-              <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>Enter로 전송 · Shift+Enter 줄바꿈</p>
-              {stage === "interview" && (
-                <button onClick={handlePassQuestion} style={{ fontSize: 11, color: "#94A3B8", background: "none", border: "1px solid #E2E8F0", borderRadius: 8, padding: "3px 10px", cursor: "pointer" }}>
-                  Pass 할게요
-                </button>
-              )}
-            </div>
+            <p style={{ fontSize: 11, color: "#94A3B8", textAlign: "center", marginTop: 8 }}>Enter로 전송 · Shift+Enter 줄바꿈</p>
           </div>
         )}
       </div>
