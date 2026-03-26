@@ -180,6 +180,14 @@ function POVCard({ answers }) {
 
 
 const STEP_LABELS = ["분석", "프로토타이핑 전략", "그로스 전략", "이터레이션 설계", "PRD 설계"]
+const STEP_DESCS = [
+  null,
+  null,
+  "프로토타이핑이란 돈과 시간을 최소로 써서 '될지 안 될지'를 빠르게 확인하는 방법이에요.",
+  "그로스(Growth)란 첫 사용자를 데려오고, 자연스럽게 더 많은 사람에게 퍼지게 만드는 전략이에요.",
+  "이터레이션이란 한 번에 다 만들지 않고, 작게 만들고 → 써보고 → 고치는 걸 반복하는 방식이에요.",
+  "PRD란 개발자(또는 AI 코딩 도구)에게 '이렇게 만들어줘'라고 전달하는 설계 문서예요.",
+]
 
 function renderMarkdown(text) {
   const lines = text.split("\n")
@@ -269,7 +277,14 @@ function DeepenModal({ answers, pov, receiptId, onClose }) {
               <p style={{ fontSize: 13, color: "#94A3B8" }}>{step}단계 분석 중...</p>
             </div>
           ) : results[step] ? (
-            <div>{renderMarkdown(results[step])}</div>
+            <div>
+              {STEP_DESCS[step] && (
+                <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: "8px 12px", marginBottom: 12, fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>
+                  💬 <strong>{STEP_LABELS[step - 1]}</strong>이란? {STEP_DESCS[step]}
+                </div>
+              )}
+              {renderMarkdown(results[step])}
+            </div>
           ) : null}
         </div>
 
