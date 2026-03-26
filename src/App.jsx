@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react"
-import { evaluateWithAI, deepenWithAI } from "./utils/ai"
+import { evaluateWithAI, deepenWithAI, parseAnswersWithAI } from "./utils/ai"
 import { saveToNotion, queryNotion } from "./utils/notion"
 
 function getSessionUser() {
@@ -14,6 +14,8 @@ const SQUAD_MEMBERS = [
   { id: 2, name: "이유미", role: "업무 자동화",  emoji: "⚙️", color: "#0CA678" },
   { id: 3, name: "서은영", role: "AX 역량 강화", emoji: "🚀", color: "#E67700" },
 ]
+
+const PARSE_THRESHOLD = 100
 
 const INTERVIEW_QUESTIONS = [
   { id: "who",     label: "대상",          emoji: "👤", question: "이 문제를 주로 겪는 분이 어떤 역할/팀인지 알 수 있을까요?",     placeholder: "예) 마케팅팀 담당자들, CS 운영팀 전체..." },
@@ -423,6 +425,8 @@ export default function AXAgentChat() {
   const [notionSaved, setNotionSaved]         = useState(undefined)
   const [showDeepen, setShowDeepen]           = useState(false)
   const [deepenData, setDeepenData]           = useState(null)
+  const [followupQueue, setFollowupQueue]     = useState([])
+  const [followupIdx, setFollowupIdx]         = useState(0)
   const [sessionUser, setSessionUser]         = useState(() => getSessionUser())
   const bottomRef    = useRef(null)
   const isSubmit     = useRef(false)
@@ -467,26 +471,65 @@ export default function AXAgentChat() {
     setTimeout(() => addMsg("agent", content), delay)
   }
 
-  function startIntro() {
-    setStage("intro")
-    agentSay(<span>안녕하세요! 👋 저는 <strong>AX스쿼드 과제접수 에이전트</strong>입니다.<br /><br />생성형 AI, 업무 자동화, AX 역량 강화 아이디어를 대화로 접수해드려요.</span>)
-    setTimeout(() => {
-      agentSay(<span>지금 업무에서 어떤 <strong>불편함이나 해결하고 싶은 문제</strong>가 있으신가요?<br /><span style={{ color: "#94A3B8", fontSize: 12 }}>예) 매주 엑셀 리포트를 수작업으로 만드는데 너무 오래 걸려요</span></span>, 1400)
-      setStage("interview-init")
-    }, 800)
-  }
-
-  function handleInitAnswer() {
+  async function handleFirstMessage() {
     if (!input.trim()) return
     const text = input.trim(); setFirstMsg(text); setInput("")
+    setStage("loading")
     addMsg("user", text)
-    setTimeout(() => {
-      agentSay(<span>좋아요! 몇 가지 질문을 드릴게요.<br /><span style={{ color: "#94A3B8", fontSize: 12 }}>({INTERVIEW_QUESTIONS.length}개 질문, 5분 이내)</span></span>)
+
+    if (text.length >= PARSE_THRESHOLD) {
+      agentSay(<span>좋아요! 내용을 분석 중이에요... 🔍</span>)
+      const parsed = await parseAnswersWithAI(text)
+      setAnswers(parsed)
+      const missing = INTERVIEW_QUESTIONS.filter(q => !parsed[q.id]?.trim()).map(q => q.id)
+      if (missing.length === 0) {
+        setTimeout(() => {
+          agentSay(<span>내용을 모두 파악했어요! 확인해주세요. ✏️</span>)
+          setTimeout(() => { setStage("pov-confirm"); addMsg("agent", <POVCard answers={parsed} />) }, 1000)
+        }, 400)
+      } else {
+        setFollowupQueue(missing)
+        setFollowupIdx(0)
+        const firstQ = INTERVIEW_QUESTIONS.find(q => q.id === missing[0])
+        setTimeout(() => {
+          agentSay(<span>내용을 파악했어요! <strong>{missing.length}가지</strong> 항목만 추가로 확인할게요.</span>)
+          setTimeout(() => {
+            setStage("followup")
+            agentSay(<span><span style={{ fontSize: 11, fontWeight: 700, color: "#60A5FA" }}>추가 질문 1/{missing.length}</span><br />{firstQ.emoji} <strong>{firstQ.label}</strong><br />{firstQ.question}</span>, 1000)
+          }, 1200)
+        }, 400)
+      }
+    } else {
       setTimeout(() => {
-        setStage("interview")
-        agentSay(<span><span style={{ fontSize: 11, fontWeight: 700, color: "#60A5FA" }}>질문 1/{INTERVIEW_QUESTIONS.length}</span><br />{INTERVIEW_QUESTIONS[0].emoji} <strong>{INTERVIEW_QUESTIONS[0].label}</strong><br />{INTERVIEW_QUESTIONS[0].question}</span>, 1000)
-      }, 1200)
-    }, 400)
+        agentSay(<span>좋아요! 몇 가지 질문을 드릴게요.<br /><span style={{ color: "#94A3B8", fontSize: 12 }}>({INTERVIEW_QUESTIONS.length}개 질문, 5분 이내)</span></span>)
+        setTimeout(() => {
+          setStage("interview")
+          agentSay(<span><span style={{ fontSize: 11, fontWeight: 700, color: "#60A5FA" }}>질문 1/{INTERVIEW_QUESTIONS.length}</span><br />{INTERVIEW_QUESTIONS[0].emoji} <strong>{INTERVIEW_QUESTIONS[0].label}</strong><br />{INTERVIEW_QUESTIONS[0].question}</span>, 1000)
+        }, 1200)
+      }, 400)
+    }
+  }
+
+  function handleFollowupAnswer() {
+    if (!input.trim()) return
+    const text = input.trim()
+    const qId = followupQueue[followupIdx]
+    addMsg("user", text)
+    const newAnswers = { ...answers, [qId]: text }
+    setAnswers(newAnswers); setInput("")
+    const next = followupIdx + 1
+    if (next < followupQueue.length) {
+      setFollowupIdx(next)
+      const q = INTERVIEW_QUESTIONS.find(iq => iq.id === followupQueue[next])
+      setTimeout(() => agentSay(
+        <span><span style={{ fontSize: 11, fontWeight: 700, color: "#60A5FA" }}>추가 질문 {next+1}/{followupQueue.length}</span><br />{q.emoji} <strong>{q.label}</strong><br />{q.question}</span>
+      ), 400)
+    } else {
+      setTimeout(() => {
+        agentSay(<span>수고하셨어요! 내용을 정리했어요. 확인해주세요. ✏️</span>)
+        setTimeout(() => { setStage("pov-confirm"); addMsg("agent", <POVCard answers={newAnswers} />) }, 1000)
+      }, 400)
+    }
   }
 
   function proceedInterview(text, qId) {
@@ -515,9 +558,29 @@ export default function AXAgentChat() {
   }
 
   function handlePassQuestion() {
-    const qId = INTERVIEW_QUESTIONS[currentQ].id
-    addMsg("user", "Pass 할게요.")
-    proceedInterview("", qId)
+    if (stage === "interview") {
+      const qId = INTERVIEW_QUESTIONS[currentQ].id
+      addMsg("user", "Pass 할게요.")
+      proceedInterview("", qId)
+    } else if (stage === "followup") {
+      const qId = followupQueue[followupIdx]
+      addMsg("user", "Pass 할게요.")
+      const newAnswers = { ...answers, [qId]: "" }
+      setAnswers(newAnswers); setInput("")
+      const next = followupIdx + 1
+      if (next < followupQueue.length) {
+        setFollowupIdx(next)
+        const q = INTERVIEW_QUESTIONS.find(iq => iq.id === followupQueue[next])
+        setTimeout(() => agentSay(
+          <span><span style={{ fontSize: 11, fontWeight: 700, color: "#60A5FA" }}>추가 질문 {next+1}/{followupQueue.length}</span><br />{q.emoji} <strong>{q.label}</strong><br />{q.question}</span>
+        ), 400)
+      } else {
+        setTimeout(() => {
+          agentSay(<span>수고하셨어요! 내용을 정리했어요. 확인해주세요. ✏️</span>)
+          setTimeout(() => { setStage("pov-confirm"); addMsg("agent", <POVCard answers={newAnswers} />) }, 1000)
+        }, 400)
+      }
+    }
   }
 
   async function confirmPOV() {
@@ -566,8 +629,9 @@ export default function AXAgentChat() {
     if (isSubmit.current) return
     isSubmit.current = true
     setTimeout(() => { isSubmit.current = false }, 800)
-    if (stage === "interview-init") return handleInitAnswer()
+    if (stage === "welcome") return handleFirstMessage()
     if (stage === "interview") return handleInterviewAnswer()
+    if (stage === "followup") return handleFollowupAnswer()
   }
 
   function handleKeyDown(e) {
@@ -579,6 +643,7 @@ export default function AXAgentChat() {
   function reset() {
     setStage("welcome"); setMessages([]); setCurrentQ(0); setAnswers({})
     setFirstMsg(""); setInput(""); setNotionSaved(undefined)
+    setFollowupQueue([]); setFollowupIdx(0)
     verdictRef.current = null; receiptIdRef.current = null; reasonRef.current = ""
   }
 
@@ -587,7 +652,7 @@ export default function AXAgentChat() {
     window.location.reload()
   }
 
-  const showInput = stage === "interview-init" || stage === "interview"
+  const showInput = stage === "welcome" || stage === "interview" || stage === "followup"
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#F8FAFC", fontFamily: "'Pretendard','Apple SD Gothic Neo',-apple-system,sans-serif", overflow: "hidden" }}>
@@ -680,15 +745,20 @@ export default function AXAgentChat() {
               <ProgressBar total={INTERVIEW_QUESTIONS.length} current={currentQ} />
             </div>
           )}
+          {stage === "followup" && (
+            <div style={{ marginLeft: "auto" }}>
+              <ProgressBar total={followupQueue.length} current={followupIdx} />
+            </div>
+          )}
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-          {stage === "welcome" && (
+          {stage === "welcome" && messages.length === 0 && (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 24, textAlign: "center" }}>
               <div style={{ width: 80, height: 80, borderRadius: 24, background: "linear-gradient(135deg,#1E3A8A,#3B82F6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, boxShadow: "0 8px 32px rgba(59,130,246,0.3)" }}>🤝</div>
               <div>
                 <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1E293B", margin: "0 0 8px" }}>AX스쿼드 에이전트</h1>
-                <p style={{ fontSize: 13, color: "#64748B", margin: 0, lineHeight: 1.6 }}>AI/DX 아이디어가 있으신가요?<br />대화로 과제를 접수해드려요. 인터뷰 없이 5분 이내 완료.</p>
+                <p style={{ fontSize: 13, color: "#64748B", margin: 0, lineHeight: 1.6 }}>업무에서 해결하고 싶은 문제가 있으신가요?<br />아래에 자유롭게 입력해주세요. 짧아도, 길어도 괜찮아요.</p>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, width: "100%", maxWidth: 360 }}>
                 {SQUAD_MEMBERS.map(m => (
@@ -698,13 +768,10 @@ export default function AXAgentChat() {
                   </div>
                 ))}
               </div>
-              <button onClick={startIntro} style={{ padding: "12px 32px", borderRadius: 16, background: "linear-gradient(135deg,#1E3A8A,#3B82F6)", color: "white", fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer", boxShadow: "0 4px 16px rgba(59,130,246,0.3)" }}>
-                과제 접수 시작하기 →
-              </button>
             </div>
           )}
 
-          {stage !== "welcome" && messages.map(msg => (
+          {messages.map(msg => (
             <ChatBubble key={msg.id} from={msg.from}>{msg.content}</ChatBubble>
           ))}
 
@@ -719,7 +786,7 @@ export default function AXAgentChat() {
             </div>
           )}
 
-          {stage === "interview" && !isTyping && (
+          {(stage === "interview" || stage === "followup") && !isTyping && (
             <div style={{ display: "flex", gap: 8, paddingLeft: 52 }}>
               <button onClick={handlePassQuestion} style={{ padding: "8px 16px", borderRadius: 12, background: "#F1F5F9", color: "#94A3B8", fontSize: 13, fontWeight: 600, border: "1px solid #E2E8F0", cursor: "pointer" }}>
                 🙅 잘 모르겠어요 (Pass)
@@ -759,10 +826,16 @@ export default function AXAgentChat() {
 
         {showInput && (
           <div style={{ background: "white", borderTop: "1px solid #F1F5F9", padding: "16px 24px" }}>
+            {stage === "welcome" && (
+              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 11, color: "#64748B", background: "#F1F5F9", borderRadius: 99, padding: "4px 10px" }}>💡 짧게 써도 OK — 단계별로 도와드릴 거에요</span>
+                <span style={{ fontSize: 11, color: "#64748B", background: "#F1F5F9", borderRadius: 99, padding: "4px 10px" }}>📋 기획서·이메일 통째로 붙여넣기도 OK</span>
+              </div>
+            )}
             <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
               <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} rows={1}
-                placeholder={stage === "interview" ? INTERVIEW_QUESTIONS[currentQ]?.placeholder : "문제를 설명해주세요..."}
-                style={{ flex: 1, resize: "none", borderRadius: 16, border: "1px solid #E2E8F0", background: "#F8FAFC", padding: "12px 16px", fontSize: 13, color: "#334155", outline: "none", minHeight: 48, maxHeight: 120, fontFamily: "inherit" }}
+                placeholder={stage === "interview" ? INTERVIEW_QUESTIONS[currentQ]?.placeholder : stage === "followup" ? INTERVIEW_QUESTIONS.find(q => q.id === followupQueue[followupIdx])?.placeholder : "업무에서 해결하고 싶은 문제를 말씀해주세요..."}
+                style={{ flex: 1, resize: "none", borderRadius: 16, border: "1px solid #E2E8F0", background: "#F8FAFC", padding: "12px 16px", fontSize: 13, color: "#334155", outline: "none", minHeight: stage === "welcome" ? 80 : 48, maxHeight: 160, fontFamily: "inherit" }}
               />
               <button onClick={handleSend} disabled={!input.trim()}
                 style={{ width: 48, height: 48, borderRadius: 16, background: input.trim() ? "linear-gradient(135deg,#1E3A8A,#3B82F6)" : "#E2E8F0", border: "none", cursor: input.trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -771,7 +844,14 @@ export default function AXAgentChat() {
                 </svg>
               </button>
             </div>
-            <p style={{ fontSize: 11, color: "#94A3B8", textAlign: "center", marginTop: 8 }}>Enter로 전송 · Shift+Enter 줄바꿈</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+              <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>Enter로 전송 · Shift+Enter 줄바꿈</p>
+              {stage === "welcome" && input.length > 0 && (
+                <p style={{ fontSize: 11, margin: 0, color: input.length >= PARSE_THRESHOLD ? "#3B82F6" : "#94A3B8", fontWeight: input.length >= PARSE_THRESHOLD ? 600 : 400 }}>
+                  {input.length >= PARSE_THRESHOLD ? "✨ AI가 자동 분석할게요" : `${input.length}자`}
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>

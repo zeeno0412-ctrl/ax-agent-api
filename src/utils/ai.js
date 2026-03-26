@@ -63,6 +63,31 @@ PoV는 아래 형식으로 한 문장으로 작성:
   }
 }
 
+export async function parseAnswersWithAI(text) {
+  const prompt = `아래 텍스트에서 과제 접수에 필요한 정보를 추출해주세요.
+각 항목이 텍스트에 명확히 언급되어 있으면 해당 내용을, 불명확하거나 없으면 빈 문자열("")로 반환하세요.
+
+[텍스트]
+${text}
+
+[항목 설명]
+- who: 이 문제를 주로 겪는 역할/팀
+- need: 그들이 가장 원하는 것
+- insight: 왜 이 문제가 해결이 안 되는지
+- current: 현재 어떻게 대응하고 있는지
+- effect: 해결되면 어떤 변화가 기대되는지
+- data: 필요한 데이터 또는 원하는 산출물 형태
+
+반드시 아래 JSON만 응답 (다른 텍스트 없이):
+{"who":"","need":"","insight":"","current":"","effect":"","data":""}`;
+  try {
+    const result = await callAXAgentAPI(prompt, 800);
+    return JSON.parse(result.replace(/```json|```/g, "").trim());
+  } catch (e) {
+    return { who: "", need: "", insight: "", current: "", effect: "", data: "" };
+  }
+}
+
 export async function deepenWithAI(step, answers, pov) {
   const context = `
 [과제 정보]
