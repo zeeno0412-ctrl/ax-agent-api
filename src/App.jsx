@@ -489,13 +489,9 @@ export default function AXAgentChat() {
     }, 400)
   }
 
-  function handleInterviewAnswer() {
-    if (!input.trim()) return
-    const text = input.trim()
-    const qId = INTERVIEW_QUESTIONS[currentQ].id
+  function proceedInterview(text, qId) {
     const newAnswers = { ...answers, [qId]: text }
     setAnswers(newAnswers); setInput("")
-    addMsg("user", text)
     const next = currentQ + 1
     if (next < INTERVIEW_QUESTIONS.length) {
       setCurrentQ(next)
@@ -508,6 +504,20 @@ export default function AXAgentChat() {
         setTimeout(() => { setStage("pov-confirm"); addMsg("agent", <POVCard answers={newAnswers} />) }, 1000)
       }, 400)
     }
+  }
+
+  function handleInterviewAnswer() {
+    if (!input.trim()) return
+    const text = input.trim()
+    const qId = INTERVIEW_QUESTIONS[currentQ].id
+    addMsg("user", text)
+    proceedInterview(text, qId)
+  }
+
+  function handlePassQuestion() {
+    const qId = INTERVIEW_QUESTIONS[currentQ].id
+    addMsg("user", "Pass 할게요.")
+    proceedInterview("", qId)
   }
 
   async function confirmPOV() {
@@ -753,7 +763,14 @@ export default function AXAgentChat() {
                 </svg>
               </button>
             </div>
-            <p style={{ fontSize: 11, color: "#94A3B8", textAlign: "center", marginTop: 8 }}>Enter로 전송 · Shift+Enter 줄바꿈</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+              <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>Enter로 전송 · Shift+Enter 줄바꿈</p>
+              {stage === "interview" && (
+                <button onClick={handlePassQuestion} style={{ fontSize: 11, color: "#94A3B8", background: "none", border: "1px solid #E2E8F0", borderRadius: 8, padding: "3px 10px", cursor: "pointer" }}>
+                  Pass 할게요
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
