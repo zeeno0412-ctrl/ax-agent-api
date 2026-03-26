@@ -206,6 +206,17 @@ function DeepenModal({ answers, pov, receiptId, onClose }) {
   const [step, setStep] = useState(1)
   const [results, setResults] = useState({})
   const [loading, setLoading] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editContent, setEditContent] = useState("")
+
+  function startEdit() { setEditContent(results[step] || ""); setEditing(true) }
+  function cancelEdit() { setEditing(false) }
+  function saveEdit() {
+    const updated = editContent
+    setResults(prev => ({ ...prev, [step]: updated }))
+    try { localStorage.setItem("deepen_" + receiptId + "_" + step, updated) } catch(e) {}
+    setEditing(false)
+  }
 
   useEffect(() => {
     loadStep(1)
@@ -278,12 +289,19 @@ function DeepenModal({ answers, pov, receiptId, onClose }) {
             </div>
           ) : results[step] ? (
             <div>
-              {STEP_DESCS[step] && (
+              {STEP_DESCS[step] && !editing && (
                 <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: "8px 12px", marginBottom: 12, fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>
                   💬 <strong>{STEP_LABELS[step - 1]}</strong>이란? {STEP_DESCS[step]}
                 </div>
               )}
-              {renderMarkdown(results[step])}
+              {editing ? (
+                <textarea
+                  value={editContent}
+                  onChange={e => setEditContent(e.target.value)}
+                  style={{ width: "100%", minHeight: 320, fontSize: 13, color: "#334155", border: "1px solid #CBD5E1", borderRadius: 10, padding: 12, lineHeight: 1.7, resize: "vertical", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                  autoFocus
+                />
+              ) : renderMarkdown(results[step])}
             </div>
           ) : null}
         </div>
@@ -292,23 +310,35 @@ function DeepenModal({ answers, pov, receiptId, onClose }) {
         <div style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>{step} / 5 단계</p>
           <div style={{ display: "flex", gap: 8 }}>
-            {step > 1 && (
-              <button onClick={() => loadStep(step - 1)}
-                style={{ padding: "8px 16px", borderRadius: 12, background: "#F1F5F9", color: "#475569", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
-                ← 이전
-              </button>
-            )}
-            {step < 5 && (
-              <button onClick={() => loadStep(step + 1)} disabled={loading}
-                style={{ padding: "8px 20px", borderRadius: 12, background: loading ? "#E2E8F0" : "linear-gradient(135deg,#1E3A8A,#3B82F6)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: loading ? "not-allowed" : "pointer" }}>
-                다음 →
-              </button>
-            )}
-            {step === 5 && (
-              <button onClick={onClose}
-                style={{ padding: "8px 20px", borderRadius: 12, background: "linear-gradient(135deg,#0CA678,#34D399)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
-                완료 ✓
-              </button>
+            {editing ? (
+              <>
+                <button onClick={cancelEdit} style={{ padding: "8px 16px", borderRadius: 12, background: "#F1F5F9", color: "#475569", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>취소</button>
+                <button onClick={saveEdit} style={{ padding: "8px 20px", borderRadius: 12, background: "linear-gradient(135deg,#0CA678,#34D399)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>저장</button>
+              </>
+            ) : (
+              <>
+                {results[step] && !loading && (
+                  <button onClick={startEdit} style={{ padding: "8px 14px", borderRadius: 12, background: "#F1F5F9", color: "#475569", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>✏️ 수정하기</button>
+                )}
+                {step > 1 && (
+                  <button onClick={() => loadStep(step - 1)}
+                    style={{ padding: "8px 16px", borderRadius: 12, background: "#F1F5F9", color: "#475569", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
+                    ← 이전
+                  </button>
+                )}
+                {step < 5 && (
+                  <button onClick={() => loadStep(step + 1)} disabled={loading}
+                    style={{ padding: "8px 20px", borderRadius: 12, background: loading ? "#E2E8F0" : "linear-gradient(135deg,#1E3A8A,#3B82F6)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: loading ? "not-allowed" : "pointer" }}>
+                    다음 →
+                  </button>
+                )}
+                {step === 5 && (
+                  <button onClick={onClose}
+                    style={{ padding: "8px 20px", borderRadius: 12, background: "linear-gradient(135deg,#0CA678,#34D399)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
+                    완료 ✓
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
