@@ -39,7 +39,9 @@ export async function saveToNotion({ receiptId, answers, verdict, firstMsg, pov 
       })
     });
 
-    const data = await res.json();
+    const text = await res.text();
+    if (text.trim().startsWith("<")) return { ok: false, error: `인증이 만료되었습니다. 다시 로그인해주세요. (${res.status})` };
+    const data = JSON.parse(text);
     if (!res.ok) return { ok: false, error: data.error || data.message };
     return { ok: true, data };
   } catch (e) {
@@ -63,7 +65,9 @@ export async function queryNotion(filter = {}) {
       })
     });
 
-    const data = await res.json();
+    const text = await res.text();
+    if (text.trim().startsWith("<")) return { ok: false, error: `인증이 만료되었습니다. 다시 로그인해주세요. (${res.status})` };
+    const data = JSON.parse(text);
     if (!res.ok) return { ok: false, error: data.error || data.message };
     return { ok: true, data };
   } catch (e) {
@@ -91,7 +95,9 @@ export async function queryNotionUsers() {
       })
     });
 
-    const data = await res.json();
+    const text = await res.text();
+    if (text.trim().startsWith("<")) return { ok: false, error: `인증이 만료되었습니다. 다시 로그인해주세요. (${res.status})` };
+    const data = JSON.parse(text);
     if (!res.ok) return { ok: false, error: data.error || data.message };
     return { ok: true, data };
   } catch (e) {

@@ -20,7 +20,10 @@ async function callAXAgentAPI(prompt, maxTokens = 2000) {
   });
 
   const raw = await response.text();
-  if (!response.ok) throw new Error(raw);
+  if (!response.ok) {
+    const isHtml = raw.trim().startsWith("<")
+    throw new Error(isHtml ? `인증이 만료되었습니다. 다시 로그인해주세요. (${response.status})` : raw)
+  }
   
   const data = JSON.parse(raw);
   return data.content?.[0]?.text || "";
