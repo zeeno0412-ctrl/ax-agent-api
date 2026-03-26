@@ -428,9 +428,16 @@ function ReceiptModal({ receipt, onClose }) {
               <p style={{ fontSize: 11, color: "#1D4ED8" }}>{receipt.reason}</p>
             </div>
           )}
+          {receipt.pov && (
+            <div style={{ background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: 12, padding: "12px 16px" }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "#7C3AED", marginBottom: 2 }}>📌 PoV</p>
+              <p style={{ fontSize: 10, color: "#A78BFA", marginBottom: 8 }}>사용자에 대한 공감을 바탕으로, 해결해야 할 핵심 문제를 명확하게 정의하는 문장</p>
+              <p style={{ fontSize: 12, color: "#4C1D95", lineHeight: 1.7 }}>{receipt.pov}</p>
+            </div>
+          )}
           <div style={{ background: "white", border: "1px solid #F1F5F9", borderRadius: 12, overflow: "hidden" }}>
             <div style={{ padding: "10px 16px", borderBottom: "1px solid #F8FAFC", background: "linear-gradient(90deg,#EFF6FF,#F0FDF4)" }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>📋 POV</p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>📋 POV 요약</p>
             </div>
             {INTERVIEW_QUESTIONS.map((q, i) => (
               <div key={q.id} style={{ padding: "10px 16px", display: "flex", gap: 12, borderBottom: i < INTERVIEW_QUESTIONS.length - 1 ? "1px solid #F8FAFC" : "none" }}>
