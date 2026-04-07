@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { evaluateWithAI, deepenWithAI, parseAnswersWithAI, suggestFollowupWithAI } from "./utils/ai"
-import { saveToNotion, queryNotion, queryNotionSprints } from "./utils/notion"
+import { saveToNotion, queryNotion, queryNotionSprints, saveToGSheet } from "./utils/notion"
 
 function getSessionUser() {
   if (typeof window === "undefined") return { name: "", email: "" }
@@ -677,10 +677,12 @@ export default function AXAgentChat() {
     setTimeout(() => {
       setStage("verdict")
       addMsg("agent", <VerdictCard verdict={v} receiptId={rId} reason={reasonRef.current} pov={pov} notionSaved={null} />, { isVerdict: true })
-      saveToNotion({ receiptId: rId, answers: modifiedAnswers, verdict: v, firstMsg, pov }).then(result => {
+      const payload = { receiptId: rId, answers: modifiedAnswers, verdict: v, firstMsg, pov }
+      saveToNotion(payload).then(result => {
         setNotionSaved(result)
         refreshReceipts()
       })
+      saveToGSheet(payload)
       setDeepenData({ answers: modifiedAnswers, pov, receiptId: rId, verdict: v })
 
       if (v === "GO") {

@@ -149,3 +149,35 @@ export async function queryNotionSprints() {
     return { ok: false, error: e.message }
   }
 }
+
+const GSHEET_URL = import.meta.env.VITE_GSHEET_URL
+
+export async function saveToGSheet({ receiptId, answers, verdict, firstMsg, pov }) {
+  if (!GSHEET_URL) return { ok: false, error: "VITE_GSHEET_URL 환경변수 없음" }
+  try {
+    const email = (typeof window !== "undefined" && sessionStorage.getItem("email")) || ""
+    const res = await fetch(GSHEET_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        과제명:       firstMsg || "",
+        접수번호:     receiptId || "",
+        판정:         verdict || "",
+        신청자:       answers?.name || "",
+        팀명:         answers?.team || "",
+        대상:         answers?.who || "",
+        니즈:         answers?.need || "",
+        인사이트:     answers?.insight || "",
+        현재상황:     answers?.current || "",
+        기대효과:     answers?.effect || "",
+        데이터산출물: answers?.data || "",
+        접수일시:     new Date().toLocaleString("ko-KR"),
+        PoV:          pov || "",
+        신청자이메일: email,
+      })
+    })
+    const data = await res.json()
+    return data.ok ? { ok: true } : { ok: false, error: data.error }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+}
