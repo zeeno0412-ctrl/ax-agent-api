@@ -75,6 +75,7 @@ export async function queryNotion(filter = {}) {
   }
 }
 
+const NOTION_SPRINT_DB_ID = "33b36db6-f007-8086-a0a7-d3bbab4e4be1";
 const NOTION_USER_DB_ID = "32c36db6-f007-8054-923c-000b75b70e7f";
 
 export async function queryNotionUsers() {
@@ -102,5 +103,48 @@ export async function queryNotionUsers() {
     return { ok: true, data };
   } catch (e) {
     return { ok: false, error: e.message, isFetchError: true };
+  }
+}
+
+const STATUS_COLOR = {
+  "Done":        "#34D399",
+  "In Progress": "#60A5FA",
+  "Backlog":     "#CBD5E1",
+}
+
+export async function queryNotionSprints() {
+  try {
+    const res = await fetch(NOTION_API_URL, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        request_type: "query",
+        datasource_id: NOTION_SPRINT_DB_ID,
+        workspace_secret: "",
+        request_body: {
+          sorts: [{ property: "스프린트 시작 기간", direction: "ascending" }]
+        }
+      })
+    });
+
+    const text = await res.text();
+    if (text.trim().startsWith("<")) return { ok: false, error: `인증이 만료되었습니다.` };
+    const data = JSON.parse(text);
+    if (!res.ok) return { ok: false, error: data.error || data.message };
+
+    const sprints = (data.results || []).map(page => {
+      const p = page.properties || {}
+      const label  = p["과제"]?.title?.[0]?.plain_text || ""
+      const start  = p["스프린트 시작 기간"]?.number
+      const end    = p["스프린트 종료 기간"]?.number
+      const status = p["w진행현황"]?.select?.name || "Backlog"
+      const date   = start ? String(start).replace(/(\d{4})(\d{2})/, "$1.$2") : ""
+      const endDate = end ? String(end).replace(/(\d{4})(\d{2})/, "$1.$2") : ""
+      return { label, date, endDate, status, color: STATUS_COLOR[status] || "#CBD5E1" }
+    }).filter(s => s.label)
+
+    return { ok: true, data: sprints }
+  } catch (e) {
+    return { ok: false, error: e.message }
   }
 }

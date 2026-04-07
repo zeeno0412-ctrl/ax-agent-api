@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { evaluateWithAI, deepenWithAI, parseAnswersWithAI, suggestFollowupWithAI } from "./utils/ai"
-import { saveToNotion, queryNotion } from "./utils/notion"
+import { saveToNotion, queryNotion, queryNotionSprints } from "./utils/notion"
 
 function getSessionUser() {
   if (typeof window === "undefined") return { name: "", email: "" }
@@ -40,20 +40,6 @@ const VERDICT_CONFIG = {
   HOLD:  { label: "HOLD",  icon: "⏸️", title: "보류",            desc: "현재 3-5월 과제가 확정되어 리소스가 부족한 상황이에요. 다음 기간에 진행 가능한지 내부 검토 후 안내드릴게요.", bg: "#F8FAFC", border: "#94A3B8", text: "#475569", badge: "#F1F5F9|#475569" },
 }
 
-const SPRINTS = [
-  { label: "HBU) 카테고리 자동분류 운영", date: "2026.02", color: "#34D399" },
-  { label: "HBU) 마이샵 사전심의",        date: "2026.03", color: "#60A5FA" },
-  { label: "AX) AX PM 역량강화",          date: "2026.03", color: "#60A5FA" },
-  { label: "전사) SLT 임원대상 교육",     date: "2026.04", color: "#CBD5E1" },
-  { label: "PBU) 물류재고&MD",            date: "2026.04", color: "#CBD5E1" },
-  { label: "AX) 샌드박스 구축",                        date: "2026.02", color: "#34D399" },
-  { label: "HBU) 건강기능식품 속성 추출 및 심의봇 연동", date: "2026.02", color: "#34D399" },
-  { label: "AX) GCP 데이터 이관",                      date: "2026.02", color: "#34D399" },
-  { label: "PBU) 고객의 소리 해피콜 신분류 체계 검증",  date: "2026.03", color: "#60A5FA" },
-  { label: "PBU) 트렌즈 기술 지원",                    date: "2026.03", color: "#60A5FA" },
-  { label: "PBU) 고객의 소리 기반 통합 시스템",         date: "2026.04", color: "#CBD5E1" },
-  { label: "AX) FDE 역량강화",                         date: "2026.07", color: "#CBD5E1" },
-]
 
 // ── Notion response parser ────────────────────────────────
 function parseNotionPage(page) {
@@ -481,6 +467,7 @@ export default function AXAgentChat() {
   const [followupQueue, setFollowupQueue]     = useState([])
   const [followupIdx, setFollowupIdx]         = useState(0)
   const [povCandidates, setPovCandidates]     = useState([])
+  const [sprints, setSprints]                 = useState([])
   const [suggestedQs, setSuggestedQs]         = useState([])
   const [suggestAnswers, setSuggestAnswers]   = useState({})
   const [sessionUser, setSessionUser]         = useState(() => getSessionUser())
@@ -502,7 +489,10 @@ export default function AXAgentChat() {
     })
   }
 
-  useEffect(() => { refreshReceipts() }, [])
+  useEffect(() => {
+    refreshReceipts()
+    queryNotionSprints().then(result => { if (result.ok) setSprints(result.data) })
+  }, [])
 
   // notionSaved 바뀌면 마지막 VerdictCard 업데이트
   useEffect(() => {
@@ -784,15 +774,19 @@ export default function AXAgentChat() {
               : receipts.map(r => <HistoryItem key={r.id} r={r} onClick={() => setSelectedReceipt(r)} />)
           ) : (
             <div style={{ paddingTop: 4 }}>
-              {SPRINTS.map((s, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 4px" }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, marginTop: 4, flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: "#334155", margin: 0, lineHeight: 1.4 }}>{s.label}</p>
-                    <p style={{ fontSize: 10, color: "#94A3B8", margin: 0 }}>{s.date}</p>
+              {sprints.length === 0
+                ? <p style={{ fontSize: 11, color: "#CBD5E1", padding: "8px 0" }}>스프린트 정보를 불러오는 중...</p>
+                : sprints.map((s, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 4px" }}>
+                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, marginTop: 4, flexShrink: 0 }} />
+                    <div>
+                      <p style={{ fontSize: 11, fontWeight: 600, color: "#334155", margin: 0, lineHeight: 1.4 }}>{s.label}</p>
+                      <p style={{ fontSize: 10, color: "#94A3B8", margin: 0 }}>{s.date}{s.endDate ? ` ~ ${s.endDate}` : ""}</p>
+                      <span style={{ fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 99, background: s.color + "30", color: s.color, display: "inline-block", marginTop: 2 }}>{s.status}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              }
             </div>
           )}
         </div>
