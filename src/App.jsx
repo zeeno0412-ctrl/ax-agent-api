@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react"
-import { evaluateWithAI, deepenWithAI, parseAnswersWithAI } from "./utils/ai"
+import { evaluateWithAI, deepenWithAI, parseAnswersWithAI, suggestFollowupWithAI } from "./utils/ai"
 import { saveToNotion, queryNotion } from "./utils/notion"
 
 function getSessionUser() {
@@ -481,6 +481,8 @@ export default function AXAgentChat() {
   const [followupQueue, setFollowupQueue]     = useState([])
   const [followupIdx, setFollowupIdx]         = useState(0)
   const [povCandidates, setPovCandidates]     = useState([])
+  const [suggestedQs, setSuggestedQs]         = useState([])
+  const [suggestAnswers, setSuggestAnswers]   = useState({})
   const [sessionUser, setSessionUser]         = useState(() => getSessionUser())
   const bottomRef          = useRef(null)
   const isSubmit           = useRef(false)
@@ -540,7 +542,7 @@ export default function AXAgentChat() {
       if (missing.length === 0) {
         setTimeout(() => {
           agentSay(<span>내용을 모두 파악했어요! 확인해주세요. ✏️</span>)
-          setTimeout(() => { setStage("pov-confirm"); addMsg("agent", <POVCard answers={parsed} />) }, 1000)
+          setTimeout(() => goToPovConfirm(parsed), 1000)
         }, 400)
       } else {
         setFollowupQueue(missing)
@@ -582,7 +584,7 @@ export default function AXAgentChat() {
     } else {
       setTimeout(() => {
         agentSay(<span>수고하셨어요! 내용을 정리했어요. 확인해주세요. ✏️</span>)
-        setTimeout(() => { setStage("pov-confirm"); addMsg("agent", <POVCard answers={newAnswers} />) }, 1000)
+        setTimeout(() => goToPovConfirm(newAnswers), 1000)
       }, 400)
     }
   }
@@ -599,7 +601,7 @@ export default function AXAgentChat() {
     } else {
       setTimeout(() => {
         agentSay(<span>수고하셨어요! 내용을 정리했어요. 확인해주세요. ✏️</span>)
-        setTimeout(() => { setStage("pov-confirm"); addMsg("agent", <POVCard answers={newAnswers} />) }, 1000)
+        setTimeout(() => goToPovConfirm(newAnswers), 1000)
       }, 400)
     }
   }
@@ -610,6 +612,14 @@ export default function AXAgentChat() {
     const qId = INTERVIEW_QUESTIONS[currentQ].id
     addMsg("user", text)
     proceedInterview(text, qId)
+  }
+
+  function goToPovConfirm(ans) {
+    setSuggestedQs([])
+    setSuggestAnswers({})
+    setStage("pov-confirm")
+    addMsg("agent", <POVCard answers={ans} />)
+    suggestFollowupWithAI(ans).then(qs => setSuggestedQs(qs))
   }
 
   function handlePassQuestion() {
@@ -632,7 +642,7 @@ export default function AXAgentChat() {
       } else {
         setTimeout(() => {
           agentSay(<span>수고하셨어요! 내용을 정리했어요. 확인해주세요. ✏️</span>)
-          setTimeout(() => { setStage("pov-confirm"); addMsg("agent", <POVCard answers={newAnswers} />) }, 1000)
+          setTimeout(() => goToPovConfirm(newAnswers), 1000)
         }, 400)
       }
     }
@@ -648,7 +658,7 @@ export default function AXAgentChat() {
     receiptIdRef.current = rId
     agentSay(<span>AI로 과제를 평가하고 있어요... ✨</span>)
 
-    const modifiedAnswers = { name: sessName, team: sessTeam, ...answers }
+    const modifiedAnswers = { name: sessName, team: sessTeam, ...answers, ...suggestAnswers }
     const { verdict: v, reason, pov_candidates } = await evaluatePOVWithAI(modifiedAnswers)
     verdictRef.current = v; reasonRef.current = reason
     pendingContextRef.current = { rId, modifiedAnswers, sessName, sessTeam }
@@ -714,7 +724,7 @@ export default function AXAgentChat() {
   function reset() {
     setStage("welcome"); setMessages([]); setCurrentQ(0); setAnswers({})
     setFirstMsg(""); setInput(""); setNotionSaved(undefined)
-    setFollowupQueue([]); setFollowupIdx(0); setPovCandidates([])
+    setFollowupQueue([]); setFollowupIdx(0); setPovCandidates([]); setSuggestedQs([]); setSuggestAnswers({})
     verdictRef.current = null; receiptIdRef.current = null; reasonRef.current = ""; pendingContextRef.current = null
   }
 
@@ -879,14 +889,32 @@ export default function AXAgentChat() {
           )}
 
           {stage === "pov-confirm" && !isTyping && (
-            <div style={{ display: "flex", gap: 8, paddingLeft: 52 }}>
-              <button onClick={confirmPOV} style={{ padding: "8px 16px", borderRadius: 12, background: "linear-gradient(135deg,#1E3A8A,#3B82F6)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
-                ✅ 맞아요, 접수해주세요
-              </button>
-              <button onClick={() => { setStage("interview"); setCurrentQ(0); agentSay("다시 처음부터 시작할게요!") }}
-                style={{ padding: "8px 16px", borderRadius: 12, background: "#F1F5F9", color: "#475569", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
-                ✏️ 수정할게요
-              </button>
+            <div style={{ paddingLeft: 52, display: "flex", flexDirection: "column", gap: 10 }}>
+              {suggestedQs.length > 0 && (
+                <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "12px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#92400E", margin: 0 }}>💡 이 부분을 더 구체화하면 좋을 것 같아요 <span style={{ fontWeight: 400, color: "#B45309" }}>(선택사항)</span></p>
+                  {suggestedQs.map(q => (
+                    <div key={q.id}>
+                      <p style={{ fontSize: 11, color: "#78350F", marginBottom: 4 }}>{q.question}</p>
+                      <textarea
+                        value={suggestAnswers[q.id] || ""}
+                        onChange={e => setSuggestAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                        placeholder="답변을 입력하거나 건너뛰세요"
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #FDE68A", fontSize: 12, resize: "none", minHeight: 60, background: "white", color: "#334155", boxSizing: "border-box" }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={confirmPOV} style={{ padding: "8px 16px", borderRadius: 12, background: "linear-gradient(135deg,#1E3A8A,#3B82F6)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
+                  ✅ 맞아요, 접수해주세요
+                </button>
+                <button onClick={() => { setStage("interview"); setCurrentQ(0); agentSay("다시 처음부터 시작할게요!") }}
+                  style={{ padding: "8px 16px", borderRadius: 12, background: "#F1F5F9", color: "#475569", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
+                  ✏️ 수정할게요
+                </button>
+              </div>
             </div>
           )}
 

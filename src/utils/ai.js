@@ -69,6 +69,38 @@ PoV는 아래 형식으로 한 문장으로 작성:
   }
 }
 
+export async function suggestFollowupWithAI(answers) {
+  const summary = [
+    `대상: ${answers.who || "미입력"}`,
+    `니즈: ${answers.need || "미입력"}`,
+    `인사이트: ${answers.insight || "미입력"}`,
+    `현재상황: ${answers.current || "미입력"}`,
+    `기대효과: ${answers.effect || "미입력"}`,
+    `데이터/산출물: ${answers.data || "미입력"}`,
+  ].join("\n")
+
+  const prompt = `아래는 과제 접수 내용입니다. 답변이 너무 짧거나 모호해서 문제의 본질을 파악하기 어려운 항목을 골라, 추가로 물어볼 질문을 1~2개만 만들어주세요.
+
+[접수 내용]
+${summary}
+
+규칙:
+- 이미 충분한 항목은 건너뛰세요.
+- 질문은 짧고 구체적으로, 한국어로 작성하세요.
+- 1~2개만 반환하세요. 모든 항목이 충분하면 빈 배열로 반환하세요.
+
+반드시 아래 JSON만 응답 (다른 텍스트 없이):
+[{"id":"q1","question":"질문 내용"},{"id":"q2","question":"질문 내용"}]`
+
+  try {
+    const text = await callAXAgentAPI(prompt, 400)
+    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
+    return Array.isArray(parsed) ? parsed : []
+  } catch (e) {
+    return []
+  }
+}
+
 export async function parseAnswersWithAI(text) {
   const prompt = `아래 텍스트에서 과제 접수에 필요한 정보를 추출해주세요.
 각 항목이 텍스트에 명확히 언급되어 있으면 해당 내용을, 불명확하거나 없으면 빈 문자열("")로 반환하세요.
