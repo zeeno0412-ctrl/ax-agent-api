@@ -177,6 +177,7 @@ export async function saveToGSheet({ receiptId, answers, verdict, firstMsg, pov 
     })
     console.log("[GSheet] status:", res.status)
     const data = await res.json()
+    console.log("[GSheet] response:", JSON.stringify(data))
     return data.ok ? { ok: true } : { ok: false, error: data.error }
   } catch (e) {
     console.error("[GSheet] error:", e.message)
