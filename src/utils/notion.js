@@ -178,14 +178,12 @@ export async function saveToGSheet({ receiptId, answers, verdict, firstMsg, pov 
     console.log("[GSheet] POST →", GSHEET_URL)
     const res = await fetch(GSHEET_URL, {
       method: "POST",
-      redirect: "follow",
+      mode: "no-cors",
       body: payload,
     })
-    console.log("[GSheet] status:", res.status, "type:", res.type)
-    const text = await res.text()
-    console.log("[GSheet] body:", text.slice(0, 200))
-    const data = JSON.parse(text)
-    return data.ok ? { ok: true } : { ok: false, error: data.error }
+    // no-cors 모드에서는 응답을 읽을 수 없음 (opaque response)
+    console.log("[GSheet] sent (no-cors), type:", res.type)
+    return { ok: true }
   } catch (e) {
     console.error("[GSheet] error:", e.message)
     return { ok: false, error: e.message }
