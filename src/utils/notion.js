@@ -128,9 +128,10 @@ export async function queryNotionSprints() {
     });
 
     const text = await res.text();
-    if (text.trim().startsWith("<")) return { ok: false, error: `인증이 만료되었습니다.` };
+    console.log("[Sprint Debug] status:", res.status, "body:", text.slice(0, 300));
+    if (text.trim().startsWith("<")) return { ok: false, error: `HTTP ${res.status} — HTML 응답 (프록시 오류)` };
     const data = JSON.parse(text);
-    if (!res.ok) return { ok: false, error: data.error || data.message };
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}: ${data.error || data.message || JSON.stringify(data)}` };
 
     const sprints = (data.results || []).map(page => {
       const p = page.properties || {}
