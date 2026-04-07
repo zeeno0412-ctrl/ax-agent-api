@@ -468,6 +468,7 @@ export default function AXAgentChat() {
   const [followupIdx, setFollowupIdx]         = useState(0)
   const [povCandidates, setPovCandidates]     = useState([])
   const [sprints, setSprints]                 = useState([])
+  const [sprintsError, setSprintsError]       = useState(null)
   const [suggestedQs, setSuggestedQs]         = useState([])
   const [suggestAnswers, setSuggestAnswers]   = useState({})
   const [sessionUser, setSessionUser]         = useState(() => getSessionUser())
@@ -491,7 +492,10 @@ export default function AXAgentChat() {
 
   useEffect(() => {
     refreshReceipts()
-    queryNotionSprints().then(result => { if (result.ok) setSprints(result.data) })
+    queryNotionSprints().then(result => {
+      if (result.ok) setSprints(result.data)
+      else setSprintsError(result.error || "알 수 없는 오류")
+    })
   }, [])
 
   // notionSaved 바뀌면 마지막 VerdictCard 업데이트
@@ -774,7 +778,9 @@ export default function AXAgentChat() {
               : receipts.map(r => <HistoryItem key={r.id} r={r} onClick={() => setSelectedReceipt(r)} />)
           ) : (
             <div style={{ paddingTop: 4 }}>
-              {sprints.length === 0
+              {sprintsError
+                ? <p style={{ fontSize: 10, color: "#EF4444", padding: "8px 0", wordBreak: "break-all" }}>⚠️ {sprintsError}</p>
+                : sprints.length === 0
                 ? <p style={{ fontSize: 11, color: "#CBD5E1", padding: "8px 0" }}>스프린트 정보를 불러오는 중...</p>
                 : sprints.map((s, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 4px" }}>
