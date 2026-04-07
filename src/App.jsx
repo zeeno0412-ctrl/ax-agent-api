@@ -106,10 +106,11 @@ async function evaluatePOVWithAI(answers) {
   const summary = summaryLines.join("\n")
   try {
     const data = await evaluateWithAI(summary)
-    return { verdict: data.verdict || "MAYBE", reason: data.reason || "", pov: data.pov || "" }
+    const candidates = data.pov_candidates?.length ? data.pov_candidates : [{ perspective: "기본 관점", pov: data.pov || "" }]
+    return { verdict: data.verdict || "MAYBE", reason: data.reason || "", pov_candidates: candidates }
   } catch (e) {
     console.error("AI Evaluation failed:", e)
-    return { verdict: "MAYBE", reason: e instanceof Error ? e.message : "AI 평가 중 오류가 발생했습니다.", pov: "" }
+    return { verdict: "MAYBE", reason: e instanceof Error ? e.message : "AI 평가 중 오류가 발생했습니다.", pov_candidates: [{ perspective: "기본 관점", pov: "" }] }
   }
 }
 
@@ -479,13 +480,15 @@ export default function AXAgentChat() {
   const [deepenData, setDeepenData]           = useState(null)
   const [followupQueue, setFollowupQueue]     = useState([])
   const [followupIdx, setFollowupIdx]         = useState(0)
+  const [povCandidates, setPovCandidates]     = useState([])
   const [sessionUser, setSessionUser]         = useState(() => getSessionUser())
-  const bottomRef    = useRef(null)
-  const isSubmit     = useRef(false)
-  const verdictRef   = useRef(null)
-  const receiptIdRef = useRef(null)
-  const reasonRef    = useRef("")
-  const povRef       = useRef("")
+  const bottomRef          = useRef(null)
+  const isSubmit           = useRef(false)
+  const verdictRef         = useRef(null)
+  const receiptIdRef       = useRef(null)
+  const reasonRef          = useRef("")
+  const povRef             = useRef("")
+  const pendingContextRef  = useRef(null)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, isTyping, stage])
 
@@ -646,14 +649,30 @@ export default function AXAgentChat() {
     agentSay(<span>AI로 과제를 평가하고 있어요... ✨</span>)
 
     const modifiedAnswers = { name: sessName, team: sessTeam, ...answers }
-    const { verdict: v, reason, pov } = await evaluatePOVWithAI(modifiedAnswers)
-    verdictRef.current = v; reasonRef.current = reason; povRef.current = pov
+    const { verdict: v, reason, pov_candidates } = await evaluatePOVWithAI(modifiedAnswers)
+    verdictRef.current = v; reasonRef.current = reason
+    pendingContextRef.current = { rId, modifiedAnswers, sessName, sessTeam }
     setNotionSaved(null)
+
+    if (pov_candidates.length > 1) {
+      setPovCandidates(pov_candidates)
+      setTimeout(() => {
+        setStage("pov-select")
+        agentSay(<span>🎯 어떤 관점이 가장 가깝나요?</span>)
+      }, 400)
+    } else {
+      proceedWithVerdict(pov_candidates[0]?.pov || "")
+    }
+  }
+
+  function proceedWithVerdict(pov) {
+    const { rId, modifiedAnswers, sessName, sessTeam } = pendingContextRef.current
+    const v = verdictRef.current
+    povRef.current = pov
 
     setTimeout(() => {
       setStage("verdict")
-      addMsg("agent", <VerdictCard verdict={v} receiptId={rId} reason={reason} pov={pov} notionSaved={null} />, { isVerdict: true })
-      // Notion 저장 (기존 notion.js 엔드포인트)
+      addMsg("agent", <VerdictCard verdict={v} receiptId={rId} reason={reasonRef.current} pov={pov} notionSaved={null} />, { isVerdict: true })
       saveToNotion({ receiptId: rId, answers: modifiedAnswers, verdict: v, firstMsg, pov }).then(result => {
         setNotionSaved(result)
         refreshReceipts()
@@ -695,8 +714,8 @@ export default function AXAgentChat() {
   function reset() {
     setStage("welcome"); setMessages([]); setCurrentQ(0); setAnswers({})
     setFirstMsg(""); setInput(""); setNotionSaved(undefined)
-    setFollowupQueue([]); setFollowupIdx(0)
-    verdictRef.current = null; receiptIdRef.current = null; reasonRef.current = ""
+    setFollowupQueue([]); setFollowupIdx(0); setPovCandidates([])
+    verdictRef.current = null; receiptIdRef.current = null; reasonRef.current = ""; pendingContextRef.current = null
   }
 
   function handleLogout() {
@@ -843,6 +862,19 @@ export default function AXAgentChat() {
               <button onClick={handlePassQuestion} style={{ padding: "8px 16px", borderRadius: 12, background: "#F1F5F9", color: "#94A3B8", fontSize: 13, fontWeight: 600, border: "1px solid #E2E8F0", cursor: "pointer" }}>
                 🙅 잘 모르겠어요 (Pass)
               </button>
+            </div>
+          )}
+
+          {stage === "pov-select" && !isTyping && (
+            <div style={{ paddingLeft: 52, display: "flex", flexDirection: "column", gap: 8 }}>
+              {povCandidates.map((c, i) => (
+                <button key={i} onClick={() => proceedWithVerdict(c.pov)} style={{ textAlign: "left", padding: "12px 16px", borderRadius: 12, background: "white", border: "2px solid #E2E8F0", cursor: "pointer", transition: "all 0.15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#3B82F6"; e.currentTarget.style.background = "#EFF6FF" }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.background = "white" }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#3B82F6", margin: "0 0 4px" }}>{c.perspective}</p>
+                  <p style={{ fontSize: 12, color: "#334155", margin: 0, lineHeight: 1.6 }}>{c.pov}</p>
+                </button>
+              ))}
             </div>
           )}
 

@@ -51,17 +51,20 @@ ${summary}
 PoV는 아래 형식으로 한 문장으로 작성:
 "[대상]는 [현재상황]에 [니즈/어려움]이 있다. 왜냐하면 [인사이트]하기 때문이다."
 
+접수 내용에 등장하는 이해관계자(현업 담당자, 운영팀, 법무팀 등)를 파악하여
+각 관점에서 PoV를 2~3개 작성하세요. 관점이 명확히 다를 때만 여러 개, 비슷하면 1~2개로 줄여도 됩니다.
+
 반드시 아래 JSON만 응답 (다른 텍스트 없이):
-{"verdict":"GO", "reason":"판정 이유 한 문장","pov":"[대상]는 [현재상황]에 [니즈] 있다. 왜냐하면 [인사이트]하기 때문이다."}`;
+{"verdict":"GO","reason":"판정 이유 한 문장","pov_candidates":[{"perspective":"OFC 관점","pov":"..."},{"perspective":"법무팀 관점","pov":"..."}]}`;
 
   try {
-    const text = await callAXAgentAPI(prompt, 800);
+    const text = await callAXAgentAPI(prompt, 1200);
     return JSON.parse(text.replace(/```json|```/g, "").trim());
   } catch (e) {
     return {
       verdict: "MAYBE",
       reason: e instanceof Error ? e.message : "AI 평가 중 오류가 발생했습니다.",
-      pov: ""
+      pov_candidates: [{ perspective: "기본 관점", pov: "" }]
     };
   }
 }
