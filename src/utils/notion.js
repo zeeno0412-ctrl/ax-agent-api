@@ -150,16 +150,10 @@ export async function queryNotionSprints() {
   }
 }
 
-const GSHEET_URL = import.meta.env.VITE_GSHEET_URL
-
 export async function saveToGSheet({ receiptId, answers, verdict, firstMsg, pov }) {
-  if (!GSHEET_URL) {
-    console.warn("[GSheet] VITE_GSHEET_URL 환경변수 없음")
-    return { ok: false, error: "VITE_GSHEET_URL 환경변수 없음" }
-  }
   try {
     const email = (typeof window !== "undefined" && sessionStorage.getItem("email")) || ""
-    const payload = JSON.stringify({
+    const payload = {
       과제명:       firstMsg || "",
       접수번호:     receiptId || "",
       판정:         verdict || "",
@@ -174,16 +168,16 @@ export async function saveToGSheet({ receiptId, answers, verdict, firstMsg, pov 
       접수일시:     new Date().toLocaleString("ko-KR"),
       PoV:          pov || "",
       신청자이메일: email,
-    })
-    console.log("[GSheet] POST →", GSHEET_URL)
-    const res = await fetch(GSHEET_URL, {
+    }
+    console.log("[GSheet] POST → /api/gsheet")
+    const res = await fetch("/api/gsheet", {
       method: "POST",
-      mode: "no-cors",
-      body: payload,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     })
-    // no-cors 모드에서는 응답을 읽을 수 없음 (opaque response)
-    console.log("[GSheet] sent (no-cors), type:", res.type)
-    return { ok: true }
+    console.log("[GSheet] status:", res.status)
+    const data = await res.json()
+    return data.ok ? { ok: true } : { ok: false, error: data.error }
   } catch (e) {
     console.error("[GSheet] error:", e.message)
     return { ok: false, error: e.message }
