@@ -334,11 +334,32 @@ function DeepenModal({ answers, pov, receiptId, onClose }) {
   )
 }
 
-function VerdictCard({ verdict, receiptId, reason, pov, notionSaved }) {
+function getEarliestSprintEnd(sprints) {
+  const inProgress = (sprints || []).filter(s => s.status === "In Progress" && s.endDate)
+  if (!inProgress.length) return null
+  const earliest = inProgress.reduce((a, b) => a.endDate < b.endDate ? a : b)
+  const [year, month] = earliest.endDate.split(".")
+  return `${year}년 ${month}월`
+}
+
+function getSprintDesc(verdict, sprints) {
+  const when = getEarliestSprintEnd(sprints)
+  const timing = when ? `빠르면 **${when}** 이후` : "현재 스프린트 종료 후"
+  const map = {
+    GO:    `잘 정의된 과제입니다. ${timing} 검토가 가능할 것으로 예상됩니다.`,
+    MAYBE: `${timing} 검토 가능한지 내부 논의 예정이에요. 내용을 조금 더 구체화해주시면 도움이 됩니다.`,
+    NO:    `AX 지원 범위와 맞지 않지만, ${timing} 재접수 시 재검토해드릴게요.`,
+    HOLD:  `${timing} 내부 검토 후 안내드릴게요.`,
+  }
+  return map[verdict] || ""
+}
+
+function VerdictCard({ verdict, receiptId, reason, pov, notionSaved, sprints }) {
   const cfg = VERDICT_CONFIG[verdict]
   if (!cfg) return null
   const [badgeBg, badgeText] = cfg.badge.split("|")
   const saving = notionSaved === null || notionSaved === undefined
+  const desc = getSprintDesc(verdict, sprints)
   return (
     <div style={{ borderRadius: 16, padding: 16, width: "100%", background: cfg.bg, border: `2px solid ${cfg.border}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -346,7 +367,7 @@ function VerdictCard({ verdict, receiptId, reason, pov, notionSaved }) {
         <span style={{ fontWeight: 700, fontSize: 15, color: cfg.text }}>{cfg.title}</span>
         <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, background: badgeBg, color: badgeText }}>{cfg.label}</span>
       </div>
-      <p style={{ fontSize: 13, color: cfg.text, marginBottom: 4 }}>{cfg.desc}</p>
+      <p style={{ fontSize: 13, color: cfg.text, marginBottom: 4 }}>{desc}</p>
       {reason && <p style={{ fontSize: 11, color: "#64748B", fontStyle: "italic", marginBottom: 8, background: "rgba(255,255,255,0.7)", borderRadius: 8, padding: "6px 12px" }}>💬 {reason}</p>}
       {pov && <p style={{ fontSize: 12, color: "#1D4ED8", marginBottom: 12, background: "#EFF6FF", borderRadius: 8, padding: "8px 12px", lineHeight: 1.6 }}>📌 <strong>PoV</strong><br/>{pov}</p>}
       {receiptId && <p style={{ fontSize: 11, color: "#94A3B8", marginBottom: 12 }}>접수번호: <strong style={{ color: "#475569" }}>{receiptId}</strong></p>}
@@ -508,7 +529,7 @@ export default function AXAgentChat() {
       const copy = [...prev]
       for (let i = copy.length - 1; i >= 0; i--) {
         if (copy[i].isVerdict) {
-          copy[i] = { ...copy[i], content: <VerdictCard verdict={verdictRef.current} receiptId={receiptIdRef.current} reason={reasonRef.current} pov={povRef.current} notionSaved={notionSaved} /> }
+          copy[i] = { ...copy[i], content: <VerdictCard verdict={verdictRef.current} receiptId={receiptIdRef.current} reason={reasonRef.current} pov={povRef.current} notionSaved={notionSaved} sprints={sprints} /> }
           break
         }
       }
@@ -679,7 +700,7 @@ export default function AXAgentChat() {
 
     setTimeout(() => {
       setStage("verdict")
-      addMsg("agent", <VerdictCard verdict={v} receiptId={rId} reason={reasonRef.current} pov={pov} notionSaved={null} />, { isVerdict: true })
+      addMsg("agent", <VerdictCard verdict={v} receiptId={rId} reason={reasonRef.current} pov={pov} notionSaved={null} sprints={sprints} />, { isVerdict: true })
       const payload = { receiptId: rId, answers: modifiedAnswers, verdict: v, firstMsg, pov }
       saveToNotion(payload).then(result => {
         setNotionSaved(result)
