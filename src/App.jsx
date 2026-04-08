@@ -358,7 +358,7 @@ function VerdictCard({ verdict, receiptId, reason, pov, notionSaved }) {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <span>{saving ? "⏳" : notionSaved?.ok ? "📋" : "⚠️"}</span>
-          <span>{saving ? "Notion DB 저장 중..." : notionSaved?.ok ? "Notion DB 저장 완료" : "Notion 저장 실패"}</span>
+          <span>{saving ? "Notion DB 저장 중..." : notionSaved?.ok ? "Notion DB 및 구글 스프레드시트 저장 완료" : "Notion 저장 실패"}</span>
         </div>
         {notionSaved?.error && (
           <div style={{ fontSize: 10, color: "#B45309", background: "#FEF3C7", borderRadius: 4, padding: "3px 6px", marginTop: 2, wordBreak: "break-all" }}>
