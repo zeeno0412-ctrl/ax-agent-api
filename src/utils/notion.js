@@ -75,7 +75,7 @@ export async function queryNotion(filter = {}) {
   }
 }
 
-const NOTION_SPRINT_DB_ID = "33b36db6-f007-8086-a0a7-d3bbab4e4be1";
+const NOTION_SPRINT_DB_ID = "33b36db6-f007-8133-a889-000b5973a078";
 const NOTION_USER_DB_ID = "32c36db6-f007-8054-923c-000b75b70e7f";
 
 export async function queryNotionUsers() {
