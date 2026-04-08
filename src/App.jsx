@@ -493,7 +493,10 @@ export default function AXAgentChat() {
   useEffect(() => {
     refreshReceipts()
     queryNotionSprints().then(result => {
-      if (result.ok) setSprints(result.data)
+      if (result.ok) {
+        const order = { "In Progress": 0, "Done": 1, "Backlog": 2 }
+        setSprints([...result.data].sort((a, b) => (order[a.status] ?? 3) - (order[b.status] ?? 3)))
+      }
       else setSprintsError(result.error || "알 수 없는 오류")
     })
   }, [])
@@ -790,7 +793,7 @@ export default function AXAgentChat() {
                     <div>
                       <p style={{ fontSize: 11, fontWeight: 600, color: "#334155", margin: 0, lineHeight: 1.4 }}>{s.label}</p>
                       <p style={{ fontSize: 10, color: "#94A3B8", margin: 0 }}>{s.date}{s.endDate ? ` ~ ${s.endDate}` : ""}</p>
-                      <span style={{ fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 99, background: s.color + "30", color: s.color, display: "inline-block", marginTop: 2 }}>{s.status}</span>
+                      <span style={{ fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 99, background: s.color + "30", color: s.color, display: "inline-block", marginTop: 2 }}>{{ "In Progress": "진행 중", "Done": "진행 완료", "Backlog": "진행 예정" }[s.status] || s.status}</span>
                     </div>
                   </div>
                 ))
