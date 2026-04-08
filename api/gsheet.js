@@ -66,8 +66,8 @@ export default async function handler(req, res) {
       d["현재상황"]     || "",
       d["기대효과"]     || "",
       d["데이터산출물"] || "",
-      d["PoV"]          || "",
       d["접수일시"]     || "",
+      d["PoV"]          || "",
       d["신청자이메일"] || "",
     ];
 
