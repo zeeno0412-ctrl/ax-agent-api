@@ -14,19 +14,11 @@ export default async function handler(req, res) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(req.body),
-      redirect: "follow",
+      redirect: "manual",
     });
-    const text = await response.text();
-    console.log("[GSheet proxy] status:", response.status, "body:", text.slice(0, 500));
-    if (!response.ok) {
-      return res.status(200).json({ ok: false, error: `Apps Script HTTP ${response.status}`, body: text.slice(0, 200) });
-    }
-    try {
-      const data = JSON.parse(text);
-      return res.status(200).json(data);
-    } catch {
-      return res.status(200).json({ ok: false, error: "Apps Script 응답 파싱 실패", body: text.slice(0, 200) });
-    }
+    console.log("[GSheet proxy] status:", response.status, "redirected:", response.redirected);
+    // Apps Script는 302 리다이렉트를 반환 — 이 시점에 doPost는 이미 실행됨
+    return res.status(200).json({ ok: true });
   } catch (e) {
     return res.status(500).json({ ok: false, error: e.message });
   }
