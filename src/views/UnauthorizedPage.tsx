@@ -1,6 +1,8 @@
-import { useUserStore } from "../stores/useUserStore";
+"use client";
 
-const containerStyle = {
+import { useUserStore } from "@/stores/useUserStore";
+
+const containerStyle: React.CSSProperties = {
   minHeight: "100vh",
   display: "flex",
   alignItems: "center",
@@ -11,7 +13,7 @@ const containerStyle = {
   fontFamily: "'Pretendard','Apple SD Gothic Neo',-apple-system,sans-serif",
 };
 
-const cardStyle = {
+const cardStyle: React.CSSProperties = {
   width: "100%",
   maxWidth: "420px",
   borderRadius: "28px",
@@ -128,8 +130,8 @@ export default function UnauthorizedPage() {
             cursor: "pointer",
             transition: "all 0.15s",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "#E2E8F0"; e.currentTarget.style.color = "#EF4444"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "#F1F5F9"; e.currentTarget.style.color = "#64748B"; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#E2E8F0"; (e.currentTarget as HTMLButtonElement).style.color = "#EF4444"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#F1F5F9"; (e.currentTarget as HTMLButtonElement).style.color = "#64748B"; }}
         >
           다른 계정으로 로그인
         </button>

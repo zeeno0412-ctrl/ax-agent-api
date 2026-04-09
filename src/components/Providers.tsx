@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
-import { EventType } from "@azure/msal-browser";
-import { MsalProvider } from "@azure/msal-react";
-import { BrowserRouter } from "react-router-dom";
-import { msalInstance } from "../auth/msalInstance";
-import { loginRequest } from "../auth/authConfig";
-import { useUserStore } from "../stores/useUserStore";
+"use client";
 
-function decodeJwtPayload(token) {
+import { useEffect, useState, type ReactNode } from "react";
+import { EventType, type EventMessage, type AuthenticationResult } from "@azure/msal-browser";
+import { MsalProvider } from "@azure/msal-react";
+import { msalInstance } from "@/auth/msalInstance";
+import { loginRequest } from "@/auth/authConfig";
+import { useUserStore } from "@/stores/useUserStore";
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -22,14 +23,14 @@ function decodeJwtPayload(token) {
   }
 }
 
-function extractIpaddr(accessToken) {
+function extractIpaddr(accessToken: string): string {
   if (!accessToken) return "";
   const payload = decodeJwtPayload(accessToken);
-  return payload?.ipaddr || "";
+  return (payload?.ipaddr as string) || "";
 }
 
 async function persistAuthenticatedSession(
-  account,
+  account: { username?: string; name?: string },
   idToken = "",
   accessToken = "",
 ) {
@@ -40,14 +41,14 @@ async function persistAuthenticatedSession(
     try {
       const response = await msalInstance.acquireTokenSilent({
         ...loginRequest,
-        account,
+        account: account as Parameters<typeof msalInstance.acquireTokenSilent>[0]["account"],
       });
       resolvedAccessToken = response.accessToken || "";
       if (!resolvedIdToken) {
         resolvedIdToken = response.idToken || "";
       }
     } catch {
-      // silent token acquisition failed — profile data is still persisted below.
+      // silent token acquisition failed
     }
   }
 
@@ -60,7 +61,7 @@ async function persistAuthenticatedSession(
     .login(email, name, resolvedIdToken, resolvedAccessToken, ipaddr);
 }
 
-export default function Providers({ children }) {
+export default function Providers({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -89,9 +90,9 @@ export default function Providers({ children }) {
           }
         }
 
-        msalInstance.addEventCallback((event) => {
+        msalInstance.addEventCallback((event: EventMessage) => {
           if (event.eventType === EventType.LOGIN_SUCCESS && event.payload) {
-            const payload = event.payload;
+            const payload = event.payload as AuthenticationResult;
             if (payload.account) {
               msalInstance.setActiveAccount(payload.account);
               void persistAuthenticatedSession(
@@ -179,7 +180,7 @@ export default function Providers({ children }) {
 
   return (
     <MsalProvider instance={msalInstance}>
-      <BrowserRouter>{children}</BrowserRouter>
+      {children}
     </MsalProvider>
   );
 }

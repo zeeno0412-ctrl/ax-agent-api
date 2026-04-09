@@ -1,23 +1,15 @@
-/// <reference types="vite/client" />
-
 import { BrowserCacheLocation } from "@azure/msal-browser";
 import type { Configuration, RedirectRequest } from "@azure/msal-browser";
 
-const env = import.meta.env;
-
-const clientId =
-  env.VITE_AZURE_AD_CLIENT_ID ?? env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID ?? "";
-const tenantId =
-  env.VITE_AZURE_AD_TENANT_ID ?? env.NEXT_PUBLIC_AZURE_AD_TENANT_ID ?? "";
-const configuredAuthority =
-  env.VITE_AZURE_AD_AUTHORITY ?? env.NEXT_PUBLIC_AZURE_AD_AUTHORITY ?? "";
+const clientId = process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID ?? "";
+const tenantId = process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID ?? "";
+const configuredAuthority = process.env.NEXT_PUBLIC_AZURE_AD_AUTHORITY ?? "";
 const authority =
   configuredAuthority ||
   (tenantId ? `https://login.microsoftonline.com/${tenantId}/v2.0` : "");
-const redirectUri =
-  env.VITE_AZURE_AD_REDIRECT_URI ?? env.NEXT_PUBLIC_AZURE_AD_REDIRECT_URI ?? "";
+const redirectUri = process.env.NEXT_PUBLIC_AZURE_AD_REDIRECT_URI ?? "";
 const fallbackRedirectUri =
-  typeof window !== "undefined" ? window.location.origin : "http://localhost:5173";
+  typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
 
 export const hasRequiredMsalEnv = Boolean(clientId && authority && redirectUri);
 export const msalConfig: Configuration = {
@@ -28,7 +20,7 @@ export const msalConfig: Configuration = {
     postLogoutRedirectUri: redirectUri || fallbackRedirectUri,
   },
   cache: {
-    cacheLocation: 'sessionStorage',
+    cacheLocation: "sessionStorage" as BrowserCacheLocation,
   },
 };
 

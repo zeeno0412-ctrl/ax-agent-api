@@ -1,15 +1,38 @@
 const NOTION_API_URL = "https://ix.ax.gsretail.com/axsquad-agent/api/v2/notion";
-const NOTION_DB_ID = import.meta.env.VITE_NOTION_DB_ID;
+const NOTION_DB_ID = process.env.NEXT_PUBLIC_NOTION_DB_ID || "";
 const NOTION_QUERY_DB_ID = "31336db6-f007-803a-b949-000bbc72fdfd";
 
-function getAuthHeaders() {
+type Answers = Record<string, string>;
+
+interface ApiResult {
+  ok: boolean;
+  data?: Record<string, unknown>;
+  error?: string;
+  isFetchError?: boolean;
+}
+
+interface SprintItem {
+  label: string;
+  date: string;
+  endDate: string;
+  status: string;
+  color: string;
+}
+
+interface SprintResult {
+  ok: boolean;
+  data: SprintItem[];
+  error?: string;
+}
+
+function getAuthHeaders(): Record<string, string> {
   const token = sessionStorage.getItem("accessToken");
-  const headers = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   return headers;
 }
 
-export async function saveToNotion({ receiptId, answers, verdict, firstMsg, pov }) {
+export async function saveToNotion({ receiptId, answers, verdict, firstMsg, pov }: { receiptId: string; answers: Answers; verdict: string; firstMsg: string; pov: string }): Promise<ApiResult> {
   try {
     const res = await fetch(NOTION_API_URL, {
       method: "POST",
@@ -45,11 +68,11 @@ export async function saveToNotion({ receiptId, answers, verdict, firstMsg, pov 
     if (!res.ok) return { ok: false, error: data.error || data.message };
     return { ok: true, data };
   } catch (e) {
-    return { ok: false, error: e.message };
+    return { ok: false, error: (e as Error).message };
   }
 }
 
-export async function queryNotion(filter = {}) {
+export async function queryNotion(filter: Record<string, unknown> = {}): Promise<ApiResult> {
   try {
     const res = await fetch(NOTION_API_URL, {
       method: "POST",
@@ -71,14 +94,14 @@ export async function queryNotion(filter = {}) {
     if (!res.ok) return { ok: false, error: data.error || data.message };
     return { ok: true, data };
   } catch (e) {
-    return { ok: false, error: e.message };
+    return { ok: false, error: (e as Error).message };
   }
 }
 
 const NOTION_SPRINT_DB_ID = "33b36db6-f007-8133-a889-000b5973a078";
 const NOTION_USER_DB_ID = "32c36db6-f007-8054-923c-000b75b70e7f";
 
-export async function queryNotionUsers() {
+export async function queryNotionUsers(): Promise<ApiResult> {
   try {
     const res = await fetch(NOTION_API_URL, {
       method: "POST",
@@ -102,17 +125,17 @@ export async function queryNotionUsers() {
     if (!res.ok) return { ok: false, error: data.error || data.message };
     return { ok: true, data };
   } catch (e) {
-    return { ok: false, error: e.message, isFetchError: true };
+    return { ok: false, error: (e as Error).message, isFetchError: true };
   }
 }
 
-const STATUS_COLOR = {
+const STATUS_COLOR: Record<string, string> = {
   "Done":        "#34D399",
   "In Progress": "#60A5FA",
   "Backlog":     "#CBD5E1",
-}
+};
 
-export async function queryNotionSprints() {
+export async function queryNotionSprints(): Promise<SprintResult> {
   try {
     const res = await fetch(NOTION_API_URL, {
       method: "POST",
@@ -129,30 +152,30 @@ export async function queryNotionSprints() {
 
     const text = await res.text();
     console.log("[Sprint Debug] status:", res.status, "body:", text.slice(0, 300));
-    if (text.trim().startsWith("<")) return { ok: false, error: `HTTP ${res.status} — HTML 응답 (프록시 오류)` };
+    if (text.trim().startsWith("<")) return { ok: false, error: `HTTP ${res.status} — HTML 응답 (프록시 오류)`, data: [] };
     const data = JSON.parse(text);
-    if (!res.ok) return { ok: false, error: `HTTP ${res.status}: ${data.error || data.message || JSON.stringify(data)}` };
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}: ${data.error || data.message || JSON.stringify(data)}`, data: [] };
 
-    const sprints = (data.results || []).map(page => {
-      const p = page.properties || {}
-      const label  = p["과제"]?.title?.[0]?.plain_text || ""
-      const start  = p["스프린트 시작 기간"]?.number
-      const end    = p["스프린트 종료 기간"]?.number
-      const status = p["w진행현황"]?.select?.name || "Backlog"
-      const date   = start ? String(start).replace(/(\d{4})(\d{2})/, "$1.$2") : ""
-      const endDate = end ? String(end).replace(/(\d{4})(\d{2})/, "$1.$2") : ""
-      return { label, date, endDate, status, color: STATUS_COLOR[status] || "#CBD5E1" }
-    }).filter(s => s.label)
+    const sprints: SprintItem[] = ((data.results || []) as Record<string, unknown>[]).map((page) => {
+      const p = (page.properties || {}) as Record<string, Record<string, unknown>>;
+      const label  = (p["과제"]?.title as Array<{ plain_text: string }>)?.[0]?.plain_text || "";
+      const start  = p["스프린트 시작 기간"]?.number as number | undefined;
+      const end    = p["스프린트 종료 기간"]?.number as number | undefined;
+      const status = (p["w진행현황"]?.select as { name: string } | undefined)?.name || "Backlog";
+      const date   = start ? String(start).replace(/(\d{4})(\d{2})/, "$1.$2") : "";
+      const endDate = end ? String(end).replace(/(\d{4})(\d{2})/, "$1.$2") : "";
+      return { label, date, endDate, status, color: STATUS_COLOR[status] || "#CBD5E1" };
+    }).filter((s) => s.label);
 
-    return { ok: true, data: sprints }
+    return { ok: true, data: sprints };
   } catch (e) {
-    return { ok: false, error: e.message }
+    return { ok: false, error: (e as Error).message, data: [] };
   }
 }
 
-export async function saveToGSheet({ receiptId, answers, verdict, firstMsg, pov }) {
+export async function saveToGSheet({ receiptId, answers, verdict, firstMsg, pov }: { receiptId: string; answers: Answers; verdict: string; firstMsg: string; pov: string }): Promise<{ ok: boolean; error?: string }> {
   try {
-    const email = (typeof window !== "undefined" && sessionStorage.getItem("email")) || ""
+    const email = (typeof window !== "undefined" && sessionStorage.getItem("email")) || "";
     const payload = {
       과제명:       firstMsg || "",
       접수번호:     receiptId || "",
@@ -168,19 +191,19 @@ export async function saveToGSheet({ receiptId, answers, verdict, firstMsg, pov 
       접수일시:     new Date().toLocaleString("ko-KR"),
       PoV:          pov || "",
       신청자이메일: email,
-    }
-    console.log("[GSheet] POST → /api/gsheet")
+    };
+    console.log("[GSheet] POST → /api/gsheet");
     const res = await fetch("/api/gsheet", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    })
-    console.log("[GSheet] status:", res.status)
-    const data = await res.json()
-    console.log("[GSheet] response:", JSON.stringify(data))
-    return data.ok ? { ok: true } : { ok: false, error: data.error }
+    });
+    console.log("[GSheet] status:", res.status);
+    const data = await res.json();
+    console.log("[GSheet] response:", JSON.stringify(data));
+    return data.ok ? { ok: true } : { ok: false, error: data.error };
   } catch (e) {
-    console.error("[GSheet] error:", e.message)
-    return { ok: false, error: e.message }
+    console.error("[GSheet] error:", (e as Error).message);
+    return { ok: false, error: (e as Error).message };
   }
 }

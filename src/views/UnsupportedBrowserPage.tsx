@@ -1,4 +1,6 @@
-const containerStyle = {
+"use client";
+
+const containerStyle: React.CSSProperties = {
   minHeight: "100vh",
   display: "flex",
   alignItems: "center",
@@ -9,7 +11,7 @@ const containerStyle = {
   fontFamily: "'Pretendard','Apple SD Gothic Neo',-apple-system,sans-serif",
 };
 
-const cardStyle = {
+const cardStyle: React.CSSProperties = {
   width: "100%",
   maxWidth: "420px",
   borderRadius: "28px",

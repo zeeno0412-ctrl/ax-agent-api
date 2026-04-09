@@ -1,10 +1,11 @@
+"use client";
+
 import { useState } from "react";
 import { InteractionStatus } from "@azure/msal-browser";
 import { useIsAuthenticated, useMsal } from "@azure/msal-react";
-import { Navigate } from "react-router-dom";
-import { hasRequiredMsalEnv, loginRequest } from "../auth/authConfig";
+import { hasRequiredMsalEnv, loginRequest } from "@/auth/authConfig";
 
-const containerStyle = {
+const containerStyle: React.CSSProperties = {
   minHeight: "100vh",
   display: "flex",
   alignItems: "center",
@@ -15,7 +16,7 @@ const containerStyle = {
   fontFamily: "'Pretendard','Apple SD Gothic Neo',-apple-system,sans-serif",
 };
 
-const cardStyle = {
+const cardStyle: React.CSSProperties = {
   width: "100%",
   maxWidth: "420px",
   borderRadius: "28px",
@@ -36,7 +37,7 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return null;
   }
 
   const isBusy = inProgress !== InteractionStatus.None;

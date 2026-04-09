@@ -1,15 +1,28 @@
 const EXTERNAL_API_URL = "https://ix.ax.gsretail.com/axsquad-agent/api/v2/messages";
 
-function getAuthHeaders() {
+interface EvaluationResult {
+  verdict: string;
+  reason: string;
+  pov?: string;
+  pov_candidates: Array<{ perspective: string; pov: string }>;
+}
+
+interface SuggestedQuestion {
+  id: string;
+  question: string;
+}
+
+type Answers = Record<string, string>;
+
+function getAuthHeaders(): Record<string, string> {
   const token = sessionStorage.getItem("accessToken");
-  const headers = { "Content-Type": "application/json", "anthropic-version": "2023-06-01" };
+  const headers: Record<string, string> = { "Content-Type": "application/json", "anthropic-version": "2023-06-01" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   return headers;
 }
 
-async function callAXAgentAPI(prompt, maxTokens = 2000) {
+async function callAXAgentAPI(prompt: string, maxTokens = 2000): Promise<string> {
   const response = await fetch(EXTERNAL_API_URL, {
-    targetAddressSpace: "local",
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
@@ -21,15 +34,15 @@ async function callAXAgentAPI(prompt, maxTokens = 2000) {
 
   const raw = await response.text();
   if (!response.ok) {
-    const isHtml = raw.trim().startsWith("<")
-    throw new Error(isHtml ? `인증이 만료되었습니다. 다시 로그인해주세요. (${response.status})` : raw)
+    const isHtml = raw.trim().startsWith("<");
+    throw new Error(isHtml ? `인증이 만료되었습니다. 다시 로그인해주세요. (${response.status})` : raw);
   }
   
   const data = JSON.parse(raw);
   return data.content?.[0]?.text || "";
 }
 
-export async function evaluateWithAI(summary) {
+export async function evaluateWithAI(summary: string): Promise<EvaluationResult> {
   const prompt = `당신은 AX스쿼드(AI/DX 과제 담당팀)의 과제 접수 심사자입니다.
 아래 접수 내용을 보고 판정, PoV를 JSON으로만 응답하세요.
 
@@ -69,7 +82,7 @@ PoV는 아래 형식으로 한 문장으로 작성:
   }
 }
 
-export async function suggestFollowupWithAI(answers) {
+export async function suggestFollowupWithAI(answers: Answers): Promise<SuggestedQuestion[]> {
   const summary = [
     `대상: ${answers.who || "미입력"}`,
     `니즈: ${answers.need || "미입력"}`,
@@ -77,7 +90,7 @@ export async function suggestFollowupWithAI(answers) {
     `현재상황: ${answers.current || "미입력"}`,
     `기대효과: ${answers.effect || "미입력"}`,
     `데이터/산출물: ${answers.data || "미입력"}`,
-  ].join("\n")
+  ].join("\n");
 
   const prompt = `아래는 과제 접수 내용입니다. 답변이 너무 짧거나 모호해서 문제의 본질을 파악하기 어려운 항목을 골라, 추가로 물어볼 질문을 1~2개만 만들어주세요.
 
@@ -90,18 +103,18 @@ ${summary}
 - 1~2개만 반환하세요. 모든 항목이 충분하면 빈 배열로 반환하세요.
 
 반드시 아래 JSON만 응답 (다른 텍스트 없이):
-[{"id":"q1","question":"질문 내용"},{"id":"q2","question":"질문 내용"}]`
+[{"id":"q1","question":"질문 내용"},{"id":"q2","question":"질문 내용"}]`;
 
   try {
-    const text = await callAXAgentAPI(prompt, 400)
-    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
-    return Array.isArray(parsed) ? parsed : []
-  } catch (e) {
-    return []
+    const text = await callAXAgentAPI(prompt, 400);
+    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
 }
 
-export async function parseAnswersWithAI(text) {
+export async function parseAnswersWithAI(text: string): Promise<Answers> {
   const prompt = `아래 텍스트에서 과제 접수에 필요한 정보를 추출해주세요.
 각 항목이 텍스트에 명확히 언급되어 있으면 해당 내용을, 불명확하거나 없으면 빈 문자열("")로 반환하세요.
 
@@ -121,12 +134,12 @@ ${text}
   try {
     const result = await callAXAgentAPI(prompt, 800);
     return JSON.parse(result.replace(/```json|```/g, "").trim());
-  } catch (e) {
+  } catch {
     return { who: "", need: "", insight: "", current: "", effect: "", data: "" };
   }
 }
 
-export async function deepenWithAI(step, answers, pov) {
+export async function deepenWithAI(step: number, answers: Answers, pov: string): Promise<string> {
   const context = `
 [과제 정보]
 - 신청자: ${answers?.name || "-"} (${answers?.team || "-"})
@@ -139,7 +152,7 @@ export async function deepenWithAI(step, answers, pov) {
 - PoV: ${pov || "-"}
 `;
 
-  const prompts = {
+  const prompts: Record<number, string> = {
     1: `당신은 AX스쿼드의 과제 심화 분석가입니다. 아래 과제를 1단계 분석해주세요.
 
 ${context}
