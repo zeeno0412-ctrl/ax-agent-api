@@ -1,3 +1,6 @@
+import { msalInstance } from "@/auth/msalInstance";
+import { loginRequest } from "@/auth/authConfig";
+
 const EXTERNAL_API_URL = "https://ix.ax.gsretail.com/axsquad-agent/api/v2/messages";
 
 interface EvaluationResult {
@@ -14,8 +17,21 @@ interface SuggestedQuestion {
 
 type Answers = Record<string, string>;
 
-function getAuthHeaders(): Record<string, string> {
-  const token = sessionStorage.getItem("accessToken");
+async function getFreshToken(): Promise<string> {
+  try {
+    const account = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
+    if (!account) return sessionStorage.getItem("accessToken") || "";
+    const response = await msalInstance.acquireTokenSilent({ ...loginRequest, account });
+    const token = response.accessToken;
+    sessionStorage.setItem("accessToken", token);
+    return token;
+  } catch {
+    return sessionStorage.getItem("accessToken") || "";
+  }
+}
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const token = await getFreshToken();
   const headers: Record<string, string> = { "Content-Type": "application/json", "anthropic-version": "2023-06-01" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   return headers;
@@ -24,7 +40,7 @@ function getAuthHeaders(): Record<string, string> {
 async function callAXAgentAPI(prompt: string, maxTokens = 2000): Promise<string> {
   const response = await fetch(EXTERNAL_API_URL, {
     method: "POST",
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
       max_tokens: maxTokens,

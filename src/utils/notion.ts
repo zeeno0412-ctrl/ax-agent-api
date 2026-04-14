@@ -1,3 +1,6 @@
+import { msalInstance } from "@/auth/msalInstance";
+import { loginRequest } from "@/auth/authConfig";
+
 const NOTION_API_URL = "https://ix.ax.gsretail.com/axsquad-agent/api/v2/notion";
 const NOTION_DB_ID = process.env.NEXT_PUBLIC_NOTION_DB_ID || "";
 const NOTION_QUERY_DB_ID = "31336db6-f007-803a-b949-000bbc72fdfd";
@@ -25,8 +28,21 @@ interface SprintResult {
   error?: string;
 }
 
-function getAuthHeaders(): Record<string, string> {
-  const token = sessionStorage.getItem("accessToken");
+async function getFreshToken(): Promise<string> {
+  try {
+    const account = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
+    if (!account) return sessionStorage.getItem("accessToken") || "";
+    const response = await msalInstance.acquireTokenSilent({ ...loginRequest, account });
+    const token = response.accessToken;
+    sessionStorage.setItem("accessToken", token);
+    return token;
+  } catch {
+    return sessionStorage.getItem("accessToken") || "";
+  }
+}
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const token = await getFreshToken();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   return headers;
@@ -36,7 +52,7 @@ export async function saveToNotion({ receiptId, answers, verdict, firstMsg, pov 
   try {
     const res = await fetch(NOTION_API_URL, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify({
         request_type: "insert",
         datasource_id: NOTION_DB_ID,
@@ -76,7 +92,7 @@ export async function queryNotion(filter: Record<string, unknown> = {}): Promise
   try {
     const res = await fetch(NOTION_API_URL, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify({
         request_type: "query",
         datasource_id: NOTION_QUERY_DB_ID,
@@ -105,7 +121,7 @@ export async function queryNotionUsers(): Promise<ApiResult> {
   try {
     const res = await fetch(NOTION_API_URL, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify({
         request_type: "user_list",
         datasource_id: NOTION_USER_DB_ID,
@@ -139,7 +155,7 @@ export async function queryNotionSprints(): Promise<SprintResult> {
   try {
     const res = await fetch(NOTION_API_URL, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify({
         request_type: "query",
         datasource_id: NOTION_SPRINT_DB_ID,
