@@ -354,7 +354,7 @@ function getSprintDesc(verdict, sprints) {
   return map[verdict] || ""
 }
 
-function VerdictCard({ verdict, receiptId, reason, pov, notionSaved, sprints }) {
+function VerdictCard({ verdict, receiptId, reason, pov, notionSaved, gsheetSaved, sprints }) {
   const cfg = VERDICT_CONFIG[verdict]
   if (!cfg) return null
   const [badgeBg, badgeText] = cfg.badge.split("|")
@@ -371,21 +371,39 @@ function VerdictCard({ verdict, receiptId, reason, pov, notionSaved, sprints }) 
       {reason && <p style={{ fontSize: 11, color: "#64748B", fontStyle: "italic", marginBottom: 8, background: "rgba(255,255,255,0.7)", borderRadius: 8, padding: "6px 12px" }}>💬 {reason}</p>}
       {pov && <p style={{ fontSize: 12, color: "#1D4ED8", marginBottom: 12, background: "#EFF6FF", borderRadius: 8, padding: "8px 12px", lineHeight: 1.6 }}>📌 <strong>PoV</strong><br/>{pov}</p>}
       {receiptId && <p style={{ fontSize: 11, color: "#94A3B8", marginBottom: 12 }}>접수번호: <strong style={{ color: "#475569" }}>{receiptId}</strong></p>}
-      <div style={{
-        fontSize: 11, borderRadius: 8, padding: "6px 12px",
-        background: saving ? "#F1F5F9" : notionSaved?.ok ? "#EFF6FF" : "#FFFBEB",
-        color: saving ? "#94A3B8" : notionSaved?.ok ? "#1D4ED8" : "#92400E",
-        display: "flex", flexDirection: "column", gap: 2
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span>{saving ? "⏳" : notionSaved?.ok ? "📋" : "⚠️"}</span>
-          <span>{saving ? "Notion DB 저장 중..." : notionSaved?.ok ? "Notion DB 및 구글 스프레드시트 저장 완료" : "Notion 저장 실패"}</span>
-        </div>
-        {notionSaved?.error && (
-          <div style={{ fontSize: 10, color: "#B45309", background: "#FEF3C7", borderRadius: 4, padding: "3px 6px", marginTop: 2, wordBreak: "break-all" }}>
-            {notionSaved.error}
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div style={{
+          fontSize: 11, borderRadius: 8, padding: "6px 12px",
+          background: saving ? "#F1F5F9" : notionSaved?.ok ? "#EFF6FF" : "#FFFBEB",
+          color: saving ? "#94A3B8" : notionSaved?.ok ? "#1D4ED8" : "#92400E",
+          display: "flex", flexDirection: "column", gap: 2
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span>{saving ? "⏳" : notionSaved?.ok ? "📋" : "⚠️"}</span>
+            <span>{saving ? "Notion DB 저장 중..." : notionSaved?.ok ? "Notion DB 저장 완료" : "Notion 저장 실패"}</span>
           </div>
-        )}
+          {notionSaved?.error && (
+            <div style={{ fontSize: 10, color: "#B45309", background: "#FEF3C7", borderRadius: 4, padding: "3px 6px", marginTop: 2, wordBreak: "break-all" }}>
+              {notionSaved.error}
+            </div>
+          )}
+        </div>
+        <div style={{
+          fontSize: 11, borderRadius: 8, padding: "6px 12px",
+          background: gsheetSaved === undefined ? "#F1F5F9" : gsheetSaved?.ok ? "#EFF6FF" : "#FFFBEB",
+          color: gsheetSaved === undefined ? "#94A3B8" : gsheetSaved?.ok ? "#1D4ED8" : "#92400E",
+          display: "flex", flexDirection: "column", gap: 2
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span>{gsheetSaved === undefined ? "⏳" : gsheetSaved?.ok ? "📊" : "⚠️"}</span>
+            <span>{gsheetSaved === undefined ? "구글 스프레드시트 저장 중..." : gsheetSaved?.ok ? "구글 스프레드시트 저장 완료" : "구글 스프레드시트 저장 실패"}</span>
+          </div>
+          {gsheetSaved?.error && (
+            <div style={{ fontSize: 10, color: "#B45309", background: "#FEF3C7", borderRadius: 4, padding: "3px 6px", marginTop: 2, wordBreak: "break-all" }}>
+              {gsheetSaved.error}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -483,6 +501,7 @@ export default function AXAgentChat() {
   const [selectedReceipt, setSelectedReceipt] = useState(null)
   const [sidebarTab, setSidebarTab]           = useState("history")
   const [notionSaved, setNotionSaved]         = useState(undefined)
+  const [gsheetSaved, setGsheetSaved]         = useState(undefined)
   const [showDeepen, setShowDeepen]           = useState(false)
   const [deepenData, setDeepenData]           = useState(null)
   const [followupQueue, setFollowupQueue]     = useState([])
@@ -522,20 +541,20 @@ export default function AXAgentChat() {
     })
   }, [])
 
-  // notionSaved 바뀌면 마지막 VerdictCard 업데이트
+  // notionSaved 또는 gsheetSaved 바뀌면 마지막 VerdictCard 업데이트
   useEffect(() => {
-    if (notionSaved === undefined) return
+    if (notionSaved === undefined && gsheetSaved === undefined) return
     setMessages(prev => {
       const copy = [...prev]
       for (let i = copy.length - 1; i >= 0; i--) {
         if (copy[i].isVerdict) {
-          copy[i] = { ...copy[i], content: <VerdictCard verdict={verdictRef.current} receiptId={receiptIdRef.current} reason={reasonRef.current} pov={povRef.current} notionSaved={notionSaved} sprints={sprints} /> }
+          copy[i] = { ...copy[i], content: <VerdictCard verdict={verdictRef.current} receiptId={receiptIdRef.current} reason={reasonRef.current} pov={povRef.current} notionSaved={notionSaved} gsheetSaved={gsheetSaved} sprints={sprints} /> }
           break
         }
       }
       return copy
     })
-  }, [notionSaved])
+  }, [notionSaved, gsheetSaved])
 
   function addMsg(from, content, extra = {}) {
     setMessages(prev => [...prev, { from, content, id: Date.now() + Math.random(), ...extra }])
@@ -700,13 +719,13 @@ export default function AXAgentChat() {
 
     setTimeout(() => {
       setStage("verdict")
-      addMsg("agent", <VerdictCard verdict={v} receiptId={rId} reason={reasonRef.current} pov={pov} notionSaved={null} sprints={sprints} />, { isVerdict: true })
+      addMsg("agent", <VerdictCard verdict={v} receiptId={rId} reason={reasonRef.current} pov={pov} notionSaved={null} gsheetSaved={undefined} sprints={sprints} />, { isVerdict: true })
       const payload = { receiptId: rId, answers: modifiedAnswers, verdict: v, firstMsg, pov }
       saveToNotion(payload).then(result => {
         setNotionSaved(result)
         refreshReceipts()
       })
-      saveToGSheet(payload)
+      saveToGSheet(payload).then(result => setGsheetSaved(result))
       setDeepenData({ answers: modifiedAnswers, pov, receiptId: rId, verdict: v })
 
       if (v === "GO") {
